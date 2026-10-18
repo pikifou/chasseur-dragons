@@ -63,31 +63,34 @@ const Snd = {
       case 'fanfare': [523, 523, 523, 659, 784, 659, 784, 1047].forEach((f, i) => this.tone('square', f, f, i === 7 ? .8 : .16, .07, [0, .15, .3, .45, .75, .9, 1.05, 1.2][i])); break;
     }
   },
-  // petite boucle musicale (la mineur), plus intense en combat
+  // musiques (boucles ElevenLabs) : une par monde + le Roi Dragon
   startMusic() {
-    const c = this.ctx, bus = c.createGain(); bus.gain.value = .5; bus.connect(this.out); this.musicBus = bus;
-    const step = 60 / 132 / 4; let next = c.currentTime + .1, i = 0;
-    const bass = [45, 45, 57, 45, 48, 48, 60, 48, 43, 43, 55, 43, 40, 40, 52, 47];
-    const lead = [69, 0, 72, 0, 76, 0, 74, 72, 67, 0, 71, 0, 74, 0, 72, 71, 69, 0, 72, 76, 81, 0, 79, 76, 74, 0, 72, 0, 71, 0, 0, 0];
-    const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
-    const tick = () => {
-      if (!this.ctx) return;
-      while (next < c.currentTime + .15) {
-        const when = next - c.currentTime, fight = this.intensity || 0;
-        if (!this.muted && fight > 0) {
-          const b = bass[Math.floor(i / 2) % 16];
-          if (i % 2 === 0) this.tone('triangle', mtof(b), mtof(b), step * 1.8, .11 * fight, when, bus);
-          if (fight > .5) {
-            if (i % 8 === 0 || i % 16 === 10) { this.tone('sine', 140, 40, .18, .35, when, bus); }
-            if (i % 8 === 4) this.noiseHit(.12, .12, 'highpass', 1800, 900, when);
-            if (i % 2 === 1) this.noiseHit(.03, .035, 'highpass', 7000, 6000, when);
-            const l = lead[i % 32]; if (l && i % 64 >= 32) this.tone('square', mtof(l), mtof(l), step * 1.6, .025, when, bus);
-          }
-        }
-        next += step; i++;
-      }
-    };
-    setInterval(tick, 40);
+    const c = this.ctx; this.musicBus = c.createGain(); this.musicBus.gain.value = .55; this.musicBus.connect(this.out);
+    this.buffers = {}; this.track = null; this.cur = null;
+    const src = window.MUSIC || {};
+    for (const k in src) {
+      fetch(src[k]).then(r => r.arrayBuffer()).then(b => new Promise((ok, ko) => c.decodeAudioData(b, ok, ko))).then(buf => {
+        // on saute le silence ajouté par l'encodeur au début et à la fin
+        const d = buf.getChannelData(0); let a = 0, z = d.length - 1;
+        while (a < d.length && Math.abs(d[a]) < 1e-4) a++;
+        while (z > a && Math.abs(d[z]) < 1e-4) z--;
+        this.buffers[k] = { buf, start: a / buf.sampleRate, end: (z + 1) / buf.sampleRate };
+        if (this.want === k && this.track !== k) this.setMusic(k, this.wantVol);
+      }).catch(() => {});
+    }
+  },
+  setMusic(name, vol = 1) {
+    this.want = name; this.wantVol = vol;
+    if (!this.ctx || !this.musicBus) return;
+    const c = this.ctx, now = c.currentTime;
+    if (this.track === name && this.cur) { this.cur.g.gain.setTargetAtTime(vol, now, .4); return; }
+    const b = this.buffers[name]; if (!b) return;
+    if (this.cur) { const old = this.cur; old.g.gain.setTargetAtTime(0, now, .35); setTimeout(() => { try { old.s.stop(); } catch (e) {} }, 2500); }
+    const s = c.createBufferSource(), g = c.createGain();
+    s.buffer = b.buf; s.loop = true; s.loopStart = b.start; s.loopEnd = b.end;
+    g.gain.value = 0; g.gain.setTargetAtTime(vol, now, .5);
+    s.connect(g); g.connect(this.musicBus); s.start(now, b.start);
+    this.cur = { s, g }; this.track = name;
   },
 };
 
@@ -109,7 +112,7 @@ function resize() {
 window.addEventListener('resize', resize); resize();
 
 const game = new Game({ sfx: n => Snd.play(n), store });
-window.__game = game;
+window.__game = game; window.__snd = Snd;
 try { Snd.muted = localStorage.getItem('dragon-mute') === '1'; } catch (e) {}
 DR.muted = Snd.muted;
 try { const md = localStorage.getItem('dragon-mode'); game.mode = ['hardcore', 'lives', 'continue'].includes(md) ? md : localStorage.getItem('dragon-continue') === '1' ? 'continue' : 'hardcore'; } catch (e) {}
@@ -197,7 +200,12 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now;
   game.update(dt, input());
-  Snd.intensity = ['fight', 'intro'].includes(game.state) ? 1 : ['walk', 'open', 'upgrade', 'victory', 'loot'].includes(game.state) ? .4 : 0;
+  if (Snd.ctx) {
+    const st = game.state;
+    const tr = st === 'title' || st === 'end' ? 'pierre' : game.level.king ? 'roi' : ['pierre', 'glace', 'lave'][game.level.world];
+    const vol = game.paused ? .3 : st === 'title' ? .6 : st === 'dead' ? .35 : st === 'transition' ? .5 : 1;
+    if (tr !== Snd.want || vol !== Snd.wantVol || Snd.track !== tr) Snd.setMusic(tr, vol);
+  }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#07050c'; ctx.fillRect(0, 0, cv.width, cv.height);
   ctx.setTransform(scale * dpr, 0, 0, scale * dpr, offX * dpr, offY * dpr);

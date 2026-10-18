@@ -13,7 +13,11 @@ def font(f, rng):
     src = ('assets/'+f) if dev else 'data:font/woff2;base64,' + base64.b64encode(open(os.path.join(root,'assets',f),'rb').read()).decode()
     return "@font-face{font-family:'Luckiest Guy';font-style:normal;font-weight:400;font-display:block;src:url(%s) format('woff2');unicode-range:%s}" % (src, rng)
 html = html.replace('/*FONT*/', font('lg-latin.woff2','U+0000-00FF,U+2000-206F,U+20AC') + font('lg-ext.woff2','U+0100-024F,U+1E00-1EFF'))
-html = html.replace('/*ASSETS*/', 'window.ASSETS=' + json.dumps(assets) + ';')
+music = {}
+for n in ['pierre', 'glace', 'lave', 'roi']:
+    p = os.path.join(root, 'assets', 'music', n + '.mp3')
+    music[n] = ('assets/music/%s.mp3' % n) if dev else 'data:audio/mpeg;base64,' + base64.b64encode(open(p, 'rb').read()).decode()
+html = html.replace('/*ASSETS*/', 'window.ASSETS=' + json.dumps(assets) + ';window.MUSIC=' + json.dumps(music) + ';')
 html = html.replace('/*CORE*/', rd('core.js')).replace('/*RENDER*/', rd('render.js')).replace('/*MAIN*/', rd('main.js'))
 out = os.path.join(root, 'preview.html' if dev else 'index.html')
 open(out,'w').write(html)
@@ -30,6 +34,9 @@ if pwa_out:
             '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<meta name="apple-mobile-web-app-title" content="Dragons">\n'
             '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n<meta name="mobile-web-app-capable" content="yes">\n')
     page = html.replace('<title>', head + '<title>').replace('window.ASSETS=', 'window.PWA=true;window.ASSETS=')
+    page = page.replace('window.MUSIC=' + json.dumps(music), 'window.MUSIC=' + json.dumps({n: 'music/%s.mp3' % n for n in music}))
+    os.makedirs(os.path.join(pwa_out, 'music'), exist_ok=True)
+    for n in music: shutil.copy(os.path.join(root, 'assets', 'music', n + '.mp3'), os.path.join(pwa_out, 'music'))
     open(os.path.join(pwa_out,'index.html'),'w').write(page)
     icons = ['icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','favicon.png']
     for f in icons: shutil.copy(os.path.join(root,'pwa',f), pwa_out)
@@ -41,8 +48,8 @@ if pwa_out:
         "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
                   {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
                   {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}, ensure_ascii=False, indent=2))
-    ver = hashlib.sha1(page.encode()).hexdigest()[:10]
-    shell = ["./", "./index.html", "./manifest.webmanifest"] + ["./" + f for f in icons]
+    ver = hashlib.sha1(page.encode() + b''.join(open(os.path.join(root, 'assets', 'music', n + '.mp3'), 'rb').read() for n in music)).hexdigest()[:10]
+    shell = ["./", "./index.html", "./manifest.webmanifest"] + ["./" + f for f in icons] + ["./music/%s.mp3" % n for n in music]
     open(os.path.join(pwa_out,'sw.js'),'w').write("""/* Service worker : le jeu est mis en cache à l'installation et se joue hors ligne. Version changée à chaque build. */
 const CACHE = 'chasseur-dragons-%s';
 const SHELL = %s;
