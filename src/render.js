@@ -391,14 +391,21 @@ function drawHUD(ctx, game, t) {
     });
   }
   // cœurs
+  const hs = Math.min(32, 330 / Math.max(1, p.maxHp + p.bonus + p.shieldMax * .9));
   for (let i = 0; i < p.maxHp; i++) {
-    const full = i < p.hp, x = 30 + i * 32, y = 98;
+    const full = i < p.hp, x = 30 + i * hs, y = 98;
     const s = 26 * (full && game.hurtFlash > 0 && i === p.hp ? 1.2 : 1);
     heart(ctx, x, y, s, full ? '#ff3b55' : 'rgba(40,20,30,.85)');
     if (full) { ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.beginPath(); ctx.ellipse(x - 6, y - 5, 4, 3, -.6, 0, TAU); ctx.fill(); }
   }
+  for (let i = 0; i < p.bonus; i++) {
+    const x = 30 + (p.maxHp + i) * hs, y = 98;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .45 + .2 * Math.sin(t * 5 + i); ctx.drawImage(glow('#ffc21a'), x - 22, y - 22, 44, 44); ctx.restore();
+    heart(ctx, x, y, 26, '#ffc21a', '#4a2a00');
+    ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.beginPath(); ctx.ellipse(x - 6, y - 5, 4, 3, -.6, 0, TAU); ctx.fill();
+  }
   for (let i = 0; i < p.shieldMax; i++) {
-    const x = 30 + p.maxHp * 32 + 6 + i * 28, y = 98, on = i < p.shield;
+    const x = 30 + (p.maxHp + p.bonus) * hs + 6 + i * 28, y = 98, on = i < p.shield;
     ctx.beginPath(); ctx.moveTo(x, y - 12); ctx.lineTo(x + 10, y - 8); ctx.lineTo(x + 8, y + 6); ctx.lineTo(x, y + 12); ctx.lineTo(x - 8, y + 6); ctx.lineTo(x - 10, y - 8); ctx.closePath();
     ctx.fillStyle = on ? '#6fe3ff' : 'rgba(30,40,60,.8)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#0a2a3a'; ctx.stroke();
   }

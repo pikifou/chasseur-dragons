@@ -231,7 +231,7 @@ class Game {
   newPlayer() {
     const hp = this.mode === 'lives' ? 3 : 5;
     return { x: 270, y: 800, r: 11, hp, maxHp: hp, inv: 0, speed: 245, dmg: 10, rate: 2.6, multi: 0, diag: 0, crit: 0, burn: 0,
-      shieldMax: 0, shield: 0, shieldCd: 0, fireCd: 0, still: 0, face: 1, walk: 0, moving: false, recoil: 0, flash: 0, target: null, hits: 0 };
+      shieldMax: 0, shield: 0, shieldCd: 0, fireCd: 0, still: 0, face: 1, walk: 0, moving: false, recoil: 0, flash: 0, target: null, hits: 0, bonus: 0 };
   }
   newRun() {
     this.player = this.newPlayer();
@@ -343,6 +343,12 @@ class Game {
       this.text(p.x, p.y - 70, 'Bloqué !', '#9ef0ff', 24);
       return true;
     }
+    if (p.bonus > 0) {
+      p.bonus--; p.hits++; p.inv = 1.3; p.flash = .15;
+      this.hurtFlash = .35; this.shake(10); this.freeze = .05; this.sfx('hurt');
+      this.burst(p.x, p.y - 20, 18, ['#ffd84a', '#fff3b0', '#ffffff'], 280);
+      return true;
+    }
     p.hp--; p.hits++; p.inv = 1.3; p.flash = .15;
     this.hurtFlash = .5; this.shake(14); this.freeze = .07; this.sfx('hurt');
     this.burst(p.x, p.y - 20, 22, ['#ff4b4b', '#ffd0d0', '#ffffff'], 300);
@@ -353,7 +359,7 @@ class Game {
   loseLife() {
     const p = this.player;
     this.lives--; this.livesLost++;
-    p.hp = p.maxHp; p.shield = p.shieldMax; p.inv = 3; p.flash = 0;
+    p.hp = p.maxHp; p.bonus = 0; p.shield = p.shieldMax; p.inv = 3; p.flash = 0;
     this.lifeMsg = { t: 0, txt: 'VIE PERDUE !', sub: this.lives === 0 ? 'Dernière vie !' : 'Encore ' + this.lives + (this.lives > 1 ? ' vies' : ' vie'), col: '#ff6a6a' };
     this.slowT = 1; this.shake(18); this.sfx('lose');
     this.explosion(p.x, p.y - 20, .8, 'ice');
@@ -385,7 +391,7 @@ class Game {
     this.ring(e.x, e.y, e.w * .8, COL[e.col].glow, 14);
     this.text(e.x, e.y - e.h * .5, 'Il se fâche !', '#ff6a5a', 26);
     const p = this.player;
-    if (p.hp < p.maxHp) this.pickups.push({ kind: 'heart', x: clamp(e.x, A.l + 40, A.r - 40), y: e.y + e.h * .4, vy: 0, t: 0, land: clamp(p.y - 150, A.t + 260, A.b - 120) });
+    this.pickups.push({ kind: 'heart', x: clamp(e.x, A.l + 40, A.r - 40), y: e.y + e.h * .4, vy: 0, t: 0, land: clamp(p.y - 150, A.t + 260, A.b - 120) });
   }
   kill(e) {
     e.hp = 0;
@@ -704,8 +710,9 @@ class Game {
       k.t += dt;
       if (k.y < k.land) { k.vy += 900 * dt; k.y = Math.min(k.land, k.y + k.vy * dt); if (k.y >= k.land) this.puff(k.x, k.y, 'rgba(255,200,200,.5)', 6); }
       if (Math.hypot(p.x - k.x, p.y - 20 - k.y) < 34) {
-        k.taken = true; p.hp = Math.min(p.maxHp, p.hp + 1); this.sfx('heal');
-        this.burst(k.x, k.y, 16, ['#ff6b8a', '#ffd0dc', '#ffffff'], 200); this.text(p.x, p.y - 70, '+1 ❤', '#ff8fa8', 24);
+        k.taken = true; this.sfx('heal');
+        if (p.hp < p.maxHp) { p.hp++; this.burst(k.x, k.y, 16, ['#ff6b8a', '#ffd0dc', '#ffffff'], 200); this.text(p.x, p.y - 70, '+1 ❤', '#ff8fa8', 24); }
+        else { p.bonus = Math.min(3, p.bonus + 1); this.burst(k.x, k.y, 20, ['#ffd84a', '#fff3b0', '#ffffff'], 240); this.ring(p.x, p.y - 30, 60, '#ffd84a', 6); this.text(p.x, p.y - 70, 'Coeur bonus !', '#ffd84a', 24); }
       }
     }
     this.pickups = this.pickups.filter(k => !k.taken);
