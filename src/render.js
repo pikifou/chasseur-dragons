@@ -418,16 +418,41 @@ function drawHUD(ctx, game, t) {
     ctx.font = '18px sans-serif'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(u.icon, ux, 98); ux -= 26;
   }
   // bouton son
-  R.buttons.push({ x: W - 46, y: 0, w: 46, h: 40, action: 'mute' });
   if (['intro', 'fight', 'walk', 'open', 'upgrade', 'victory', 'loot'].includes(game.state)) {
     R.buttons.push({ x: W - 94, y: 0, w: 46, h: 40, action: 'pause' });
     ctx.fillStyle = '#ffe7a6'; ctx.fillRect(W - 78, 12, 5, 18); ctx.fillRect(W - 68, 12, 5, 18);
   }
+  speaker(ctx);
+}
+function speaker(ctx) {
+  R.buttons.push({ x: W - 46, y: 0, w: 46, h: 40, action: 'mute' });
+  const v = R.vol || { music: 1, sfx: 1 }, off = v.music <= 0 && v.sfx <= 0;
   ctx.save(); ctx.translate(W - 22, 21); ctx.fillStyle = '#ffe7a6'; ctx.strokeStyle = '#ffe7a6'; ctx.lineWidth = 2.5;
   ctx.beginPath(); ctx.moveTo(-9, -4); ctx.lineTo(-4, -4); ctx.lineTo(2, -10); ctx.lineTo(2, 10); ctx.lineTo(-4, 4); ctx.lineTo(-9, 4); ctx.closePath(); ctx.fill();
-  if (R.muted) { ctx.beginPath(); ctx.moveTo(6, -6); ctx.lineTo(14, 6); ctx.moveTo(14, -6); ctx.lineTo(6, 6); ctx.stroke(); }
-  else { ctx.beginPath(); ctx.arc(3, 0, 7, -.8, .8); ctx.stroke(); ctx.beginPath(); ctx.arc(3, 0, 12, -.8, .8); ctx.stroke(); }
+  if (off) { ctx.beginPath(); ctx.moveTo(6, -6); ctx.lineTo(14, 6); ctx.moveTo(14, -6); ctx.lineTo(6, 6); ctx.stroke(); }
+  else { ctx.beginPath(); ctx.arc(3, 0, 7, -.8, .8); ctx.stroke(); if (Math.max(v.music, v.sfx) > .5) { ctx.beginPath(); ctx.arc(3, 0, 12, -.8, .8); ctx.stroke(); } }
   ctx.restore();
+}
+function drawSound(ctx, t) {
+  R.buttons = [];
+  ctx.fillStyle = 'rgba(6,4,14,.75)'; ctx.fillRect(0, 0, W, H);
+  const cx = W / 2, top = 300, w = 420, h = 360;
+  rrect(ctx, cx - w / 2, top + 8, w, h, 22); ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fill();
+  rrect(ctx, cx - w / 2, top, w, h, 22);
+  const g = ctx.createLinearGradient(0, top, 0, top + h); g.addColorStop(0, '#4a3478'); g.addColorStop(1, '#22163c');
+  ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = '#ffcf4a'; ctx.stroke();
+  txt(ctx, 'SON', cx, top + 44, 38, '#ffd34a', 'center', '#2a1206', 8);
+  const v = R.vol || { music: 1, sfx: 1 };
+  [['music', 'Musique', top + 125], ['sfx', 'Bruitages', top + 215]].forEach(([k, label, y]) => {
+    const sx = cx - 160, sw = 320, val = v[k];
+    txt(ctx, label, sx, y - 30, 22, '#ffffff', 'left', '#140a20', 5);
+    txt(ctx, Math.round(val * 100) + ' %', sx + sw, y - 30, 20, '#ffe7a6', 'right', '#140a20', 5);
+    rrect(ctx, sx, y - 7, sw, 14, 7); ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fill();
+    if (val > 0) { rrect(ctx, sx, y - 7, Math.max(14, sw * val), 14, 7); ctx.fillStyle = '#ffbf2a'; ctx.fill(); }
+    ctx.beginPath(); ctx.arc(sx + sw * val, y, 17, 0, TAU); ctx.fillStyle = '#fff6dc'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = '#2a1206'; ctx.stroke();
+    R.buttons.push({ x: sx - 24, y: y - 32, w: sw + 48, h: 64, action: 'slider', kind: k, sx, sw });
+  });
+  button(ctx, 'OK', cx, top + 300, 180, 64, 'soundClose', '#ffbf2a', t);
 }
 
 function drawBanner(ctx, b) {
@@ -565,7 +590,7 @@ R.draw = function (ctx, game, dt, joy) {
   const st = game.state;
   const wi = st === 'title' ? 0 : game.level.world;
   updAmbient(dt, st === 'transition' && game.trans.t > game.trans.dur / 2 && game.levelIdx + 1 < LEVELS.length ? LEVELS[game.levelIdx + 1].world : wi, t);
-  if (st === 'title') { drawTitle(ctx, game, t, game.savedLevel()); return; }
+  if (st === 'title') { drawTitle(ctx, game, t, game.savedLevel()); speaker(ctx); if (R.soundPanel) drawSound(ctx, t); return; }
 
   ctx.save();
   if (game.shakeAmt > 0) ctx.translate((Math.random() - .5) * game.shakeAmt, (Math.random() - .5) * game.shakeAmt);
@@ -666,6 +691,7 @@ R.draw = function (ctx, game, dt, joy) {
     button(ctx, 'REPRENDRE', W / 2, 500, 270, 78, 'resume', '#ffbf2a', t);
     button(ctx, 'MENU', W / 2, 610, 200, 62, 'menu', '#4fb0ff', t + 1, true);
   }
+  if (R.soundPanel) drawSound(ctx, t);
 };
 R.bars = function (ctx, game, top, bottom) {
   const wi = game.state === 'title' ? 0 : game.level.world, room = ROOMS[WORLDS[wi].floor]; if (!room) return;

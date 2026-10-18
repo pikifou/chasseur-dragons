@@ -1198,16 +1198,41 @@ function drawHUD(ctx, game, t) {
     ctx.font = '18px sans-serif'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(u.icon, ux, 98); ux -= 26;
   }
   // bouton son
-  R.buttons.push({ x: W - 46, y: 0, w: 46, h: 40, action: 'mute' });
   if (['intro', 'fight', 'walk', 'open', 'upgrade', 'victory', 'loot'].includes(game.state)) {
     R.buttons.push({ x: W - 94, y: 0, w: 46, h: 40, action: 'pause' });
     ctx.fillStyle = '#ffe7a6'; ctx.fillRect(W - 78, 12, 5, 18); ctx.fillRect(W - 68, 12, 5, 18);
   }
+  speaker(ctx);
+}
+function speaker(ctx) {
+  R.buttons.push({ x: W - 46, y: 0, w: 46, h: 40, action: 'mute' });
+  const v = R.vol || { music: 1, sfx: 1 }, off = v.music <= 0 && v.sfx <= 0;
   ctx.save(); ctx.translate(W - 22, 21); ctx.fillStyle = '#ffe7a6'; ctx.strokeStyle = '#ffe7a6'; ctx.lineWidth = 2.5;
   ctx.beginPath(); ctx.moveTo(-9, -4); ctx.lineTo(-4, -4); ctx.lineTo(2, -10); ctx.lineTo(2, 10); ctx.lineTo(-4, 4); ctx.lineTo(-9, 4); ctx.closePath(); ctx.fill();
-  if (R.muted) { ctx.beginPath(); ctx.moveTo(6, -6); ctx.lineTo(14, 6); ctx.moveTo(14, -6); ctx.lineTo(6, 6); ctx.stroke(); }
-  else { ctx.beginPath(); ctx.arc(3, 0, 7, -.8, .8); ctx.stroke(); ctx.beginPath(); ctx.arc(3, 0, 12, -.8, .8); ctx.stroke(); }
+  if (off) { ctx.beginPath(); ctx.moveTo(6, -6); ctx.lineTo(14, 6); ctx.moveTo(14, -6); ctx.lineTo(6, 6); ctx.stroke(); }
+  else { ctx.beginPath(); ctx.arc(3, 0, 7, -.8, .8); ctx.stroke(); if (Math.max(v.music, v.sfx) > .5) { ctx.beginPath(); ctx.arc(3, 0, 12, -.8, .8); ctx.stroke(); } }
   ctx.restore();
+}
+function drawSound(ctx, t) {
+  R.buttons = [];
+  ctx.fillStyle = 'rgba(6,4,14,.75)'; ctx.fillRect(0, 0, W, H);
+  const cx = W / 2, top = 300, w = 420, h = 360;
+  rrect(ctx, cx - w / 2, top + 8, w, h, 22); ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fill();
+  rrect(ctx, cx - w / 2, top, w, h, 22);
+  const g = ctx.createLinearGradient(0, top, 0, top + h); g.addColorStop(0, '#4a3478'); g.addColorStop(1, '#22163c');
+  ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = '#ffcf4a'; ctx.stroke();
+  txt(ctx, 'SON', cx, top + 44, 38, '#ffd34a', 'center', '#2a1206', 8);
+  const v = R.vol || { music: 1, sfx: 1 };
+  [['music', 'Musique', top + 125], ['sfx', 'Bruitages', top + 215]].forEach(([k, label, y]) => {
+    const sx = cx - 160, sw = 320, val = v[k];
+    txt(ctx, label, sx, y - 30, 22, '#ffffff', 'left', '#140a20', 5);
+    txt(ctx, Math.round(val * 100) + ' %', sx + sw, y - 30, 20, '#ffe7a6', 'right', '#140a20', 5);
+    rrect(ctx, sx, y - 7, sw, 14, 7); ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fill();
+    if (val > 0) { rrect(ctx, sx, y - 7, Math.max(14, sw * val), 14, 7); ctx.fillStyle = '#ffbf2a'; ctx.fill(); }
+    ctx.beginPath(); ctx.arc(sx + sw * val, y, 17, 0, TAU); ctx.fillStyle = '#fff6dc'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = '#2a1206'; ctx.stroke();
+    R.buttons.push({ x: sx - 24, y: y - 32, w: sw + 48, h: 64, action: 'slider', kind: k, sx, sw });
+  });
+  button(ctx, 'OK', cx, top + 300, 180, 64, 'soundClose', '#ffbf2a', t);
 }
 
 function drawBanner(ctx, b) {
@@ -1345,7 +1370,7 @@ R.draw = function (ctx, game, dt, joy) {
   const st = game.state;
   const wi = st === 'title' ? 0 : game.level.world;
   updAmbient(dt, st === 'transition' && game.trans.t > game.trans.dur / 2 && game.levelIdx + 1 < LEVELS.length ? LEVELS[game.levelIdx + 1].world : wi, t);
-  if (st === 'title') { drawTitle(ctx, game, t, game.savedLevel()); return; }
+  if (st === 'title') { drawTitle(ctx, game, t, game.savedLevel()); speaker(ctx); if (R.soundPanel) drawSound(ctx, t); return; }
 
   ctx.save();
   if (game.shakeAmt > 0) ctx.translate((Math.random() - .5) * game.shakeAmt, (Math.random() - .5) * game.shakeAmt);
@@ -1446,6 +1471,7 @@ R.draw = function (ctx, game, dt, joy) {
     button(ctx, 'REPRENDRE', W / 2, 500, 270, 78, 'resume', '#ffbf2a', t);
     button(ctx, 'MENU', W / 2, 610, 200, 62, 'menu', '#4fb0ff', t + 1, true);
   }
+  if (R.soundPanel) drawSound(ctx, t);
 };
 R.bars = function (ctx, game, top, bottom) {
   const wi = game.state === 'title' ? 0 : game.level.world, room = ROOMS[WORLDS[wi].floor]; if (!room) return;
@@ -1466,31 +1492,39 @@ const { W, H, Game } = DG;
 
 // ------------------------------------------------------------------ son (synthétisé)
 const Snd = {
-  ctx: null, out: null, muted: false, last: {}, music: null,
+  ctx: null, out: null, last: {}, music: null,
   init() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-    this.ctx = new AC(); this.out = this.ctx.createGain(); this.out.gain.value = this.muted ? 0 : .8;
+    this.ctx = new AC(); this.out = this.ctx.createGain(); this.out.gain.value = .8;
+    this.sfxBus = this.ctx.createGain(); this.sfxBus.gain.value = this.vol.sfx; this.sfxBus.connect(this.out);
     const comp = this.ctx.createDynamicsCompressor(); this.out.connect(comp); comp.connect(this.ctx.destination);
     const len = this.ctx.sampleRate; this.noise = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
     const d = this.noise.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     this.startMusic();
   },
-  setMuted(m) { this.muted = m; if (this.out) this.out.gain.value = m ? 0 : .8; try { localStorage.setItem('dragon-mute', m ? '1' : ''); } catch (e) {} },
+  vol: { music: .7, sfx: 1 },
+  MUSIC_GAIN: .55,
+  setVolume(kind, v) {
+    this.vol[kind] = Math.max(0, Math.min(1, v));
+    if (kind === 'sfx' && this.sfxBus) this.sfxBus.gain.setTargetAtTime(this.vol.sfx, this.ctx.currentTime, .02);
+    if (kind === 'music' && this.musicBus) this.musicBus.gain.setTargetAtTime(this.vol.music * this.MUSIC_GAIN, this.ctx.currentTime, .02);
+    try { localStorage.setItem('dragon-volume', JSON.stringify(this.vol)); } catch (e) {}
+  },
   tone(type, f0, f1, dur, vol, when = 0, dest) {
     const c = this.ctx, t = c.currentTime + when, o = c.createOscillator(), g = c.createGain();
     o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-    o.connect(g); g.connect(dest || this.out); o.start(t); o.stop(t + dur + .05);
+    o.connect(g); g.connect(dest || this.sfxBus); o.start(t); o.stop(t + dur + .05);
   },
   noiseHit(dur, vol, type, f0, f1, when = 0, q = 1) {
     const c = this.ctx, t = c.currentTime + when, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
     s.buffer = this.noise; s.playbackRate.value = 1; f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur);
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-    s.connect(f); f.connect(g); g.connect(this.out); s.start(t, Math.random() * .5); s.stop(t + dur + .05);
+    s.connect(f); f.connect(g); g.connect(this.sfxBus); s.start(t, Math.random() * .5); s.stop(t + dur + .05);
   },
   play(name) {
-    if (!this.ctx || this.muted) return;
+    if (!this.ctx || this.vol.sfx <= 0) return;
     const now = this.ctx.currentTime, gap = { hit: .045, crit: .05, gem: .04, spit: .06, fire: .08, shoot: .05, pop: .08, warn: .12, tell: .2 }[name] || 0;
     if (gap && this.last[name] && now - this.last[name] < gap) return; this.last[name] = now;
     switch (name) {
@@ -1509,7 +1543,7 @@ const Snd = {
         const L = name === 'roar' ? 1 : .55, c = this.ctx, t = c.currentTime, f = c.createBiquadFilter(), g = c.createGain();
         f.type = 'lowpass'; f.frequency.value = 900; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.3, t + .08); g.gain.exponentialRampToValueAtTime(.0001, t + L);
         for (const fr of [92, 138, 69]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(fr * 1.3, t); o.frequency.exponentialRampToValueAtTime(fr * .8, t + L); const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 23; lg.gain.value = fr * .12; lfo.connect(lg); lg.connect(o.frequency); o.connect(f); o.start(t); lfo.start(t); o.stop(t + L + .05); lfo.stop(t + L + .05); }
-        f.connect(g); g.connect(this.out); this.noiseHit(L, .18, 'bandpass', 700, 300, 0, .8); break;
+        f.connect(g); g.connect(this.sfxBus); this.noiseHit(L, .18, 'bandpass', 700, 300, 0, .8); break;
       }
       case 'boom': this.noiseHit(.8, .5, 'lowpass', 900, 60); this.tone('sine', 110, 30, .6, .35); break;
       case 'pop': this.noiseHit(.25, .25, 'lowpass', 1500, 100); this.tone('sine', 200, 50, .2, .15); break;
@@ -1526,7 +1560,7 @@ const Snd = {
   },
   // musiques (boucles ElevenLabs) : une par monde + le Roi Dragon
   startMusic() {
-    const c = this.ctx; this.musicBus = c.createGain(); this.musicBus.gain.value = .55; this.musicBus.connect(this.out);
+    const c = this.ctx; this.musicBus = c.createGain(); this.musicBus.gain.value = this.vol.music * this.MUSIC_GAIN; this.musicBus.connect(this.out);
     this.buffers = {}; this.track = null; this.cur = null;
     const src = window.MUSIC || {};
     for (const k in src) {
@@ -1574,8 +1608,12 @@ window.addEventListener('resize', resize); resize();
 
 const game = new Game({ sfx: n => Snd.play(n), store });
 window.__game = game; window.__snd = Snd;
-try { Snd.muted = localStorage.getItem('dragon-mute') === '1'; } catch (e) {}
-DR.muted = Snd.muted;
+try { const v = JSON.parse(localStorage.getItem('dragon-volume') || 'null'); if (v) { Snd.vol.music = +v.music; Snd.vol.sfx = +v.sfx; } } catch (e) {}
+DR.vol = Snd.vol;
+let soundPaused = false, drag = null;
+function openSound() { DR.soundPanel = true; soundPaused = false; if (!game.paused && ['intro', 'fight', 'walk', 'open', 'victory', 'loot'].includes(game.state)) { game.paused = true; soundPaused = true; } }
+function closeSound() { DR.soundPanel = false; if (soundPaused) game.paused = false; soundPaused = false; }
+function slide(b, x) { Snd.setVolume(b.kind, (x - b.sx) / b.sw); }
 try { const md = localStorage.getItem('dragon-mode'); game.mode = ['hardcore', 'lives', 'continue'].includes(md) ? md : localStorage.getItem('dragon-continue') === '1' ? 'continue' : 'hardcore'; } catch (e) {}
 
 // ---- contrôles
@@ -1609,7 +1647,8 @@ window.addEventListener('popstate', () => {
 if (PWA && 'serviceWorker' in navigator && location.protocol === 'https:') window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); });
 
 function act(a) {
-  if (a === 'mute') { Snd.setMuted(!Snd.muted); DR.muted = Snd.muted; return; }
+  if (a === 'mute') { if (DR.soundPanel) closeSound(); else openSound(); return; }
+  if (a === 'soundClose') { closeSound(); return; }
   if (a === 'pause') { game.paused = true; return; }
   if (a === 'resume') { game.paused = false; return; }
   if (a === 'menu') { game.paused = false; game.state = 'title'; try { history.back(); } catch (e) {} return; }
@@ -1623,17 +1662,21 @@ function act(a) {
 cv.addEventListener('pointerdown', e => {
   e.preventDefault(); Snd.init();
   const p = toLogic(e);
-  for (const b of DR.buttons) if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) { act(b.action); return; }
-  if (game.paused) return;
+  for (const b of DR.buttons) if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) {
+    if (b.kind) { drag = { b, id: e.pointerId }; slide(b, p.x); try { cv.setPointerCapture(e.pointerId); } catch (er) {} return; }
+    act(b.action); return;
+  }
+  if (game.paused || DR.soundPanel) return;
   if (!joy.active) { joy.active = true; joy.id = e.pointerId; joy.bx = p.x; joy.by = p.y; joy.dx = joy.dy = 0; try { cv.setPointerCapture(e.pointerId); } catch (er) {} }
 });
 cv.addEventListener('pointermove', e => {
+  if (drag && e.pointerId === drag.id) { slide(drag.b, toLogic(e).x); return; }
   if (!joy.active || e.pointerId !== joy.id) return;
   const p = toLogic(e); let dx = (p.x - joy.bx) / 58, dy = (p.y - joy.by) / 58; const m = Math.hypot(dx, dy);
   if (m > 1) { joy.bx += (p.x - joy.bx) * (1 - 1 / m); joy.by += (p.y - joy.by) * (1 - 1 / m); dx /= m; dy /= m; }
   joy.dx = dx; joy.dy = dy;
 });
-const end = e => { if (e.pointerId === joy.id) { joy.active = false; joy.dx = joy.dy = 0; joy.id = null; } };
+const end = e => { if (drag && e.pointerId === drag.id) { if (drag.b.kind === 'sfx') Snd.play('gem'); drag = null; } if (e.pointerId === joy.id) { joy.active = false; joy.dx = joy.dy = 0; joy.id = null; } };
 cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
 window.addEventListener('keydown', e => {
   keys[e.key.toLowerCase()] = true; Snd.init();

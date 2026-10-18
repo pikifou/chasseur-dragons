@@ -5,31 +5,39 @@ const { W, H, Game } = DG;
 
 // ------------------------------------------------------------------ son (synthétisé)
 const Snd = {
-  ctx: null, out: null, muted: false, last: {}, music: null,
+  ctx: null, out: null, last: {}, music: null,
   init() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-    this.ctx = new AC(); this.out = this.ctx.createGain(); this.out.gain.value = this.muted ? 0 : .8;
+    this.ctx = new AC(); this.out = this.ctx.createGain(); this.out.gain.value = .8;
+    this.sfxBus = this.ctx.createGain(); this.sfxBus.gain.value = this.vol.sfx; this.sfxBus.connect(this.out);
     const comp = this.ctx.createDynamicsCompressor(); this.out.connect(comp); comp.connect(this.ctx.destination);
     const len = this.ctx.sampleRate; this.noise = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
     const d = this.noise.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     this.startMusic();
   },
-  setMuted(m) { this.muted = m; if (this.out) this.out.gain.value = m ? 0 : .8; try { localStorage.setItem('dragon-mute', m ? '1' : ''); } catch (e) {} },
+  vol: { music: .7, sfx: 1 },
+  MUSIC_GAIN: .55,
+  setVolume(kind, v) {
+    this.vol[kind] = Math.max(0, Math.min(1, v));
+    if (kind === 'sfx' && this.sfxBus) this.sfxBus.gain.setTargetAtTime(this.vol.sfx, this.ctx.currentTime, .02);
+    if (kind === 'music' && this.musicBus) this.musicBus.gain.setTargetAtTime(this.vol.music * this.MUSIC_GAIN, this.ctx.currentTime, .02);
+    try { localStorage.setItem('dragon-volume', JSON.stringify(this.vol)); } catch (e) {}
+  },
   tone(type, f0, f1, dur, vol, when = 0, dest) {
     const c = this.ctx, t = c.currentTime + when, o = c.createOscillator(), g = c.createGain();
     o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-    o.connect(g); g.connect(dest || this.out); o.start(t); o.stop(t + dur + .05);
+    o.connect(g); g.connect(dest || this.sfxBus); o.start(t); o.stop(t + dur + .05);
   },
   noiseHit(dur, vol, type, f0, f1, when = 0, q = 1) {
     const c = this.ctx, t = c.currentTime + when, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
     s.buffer = this.noise; s.playbackRate.value = 1; f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur);
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-    s.connect(f); f.connect(g); g.connect(this.out); s.start(t, Math.random() * .5); s.stop(t + dur + .05);
+    s.connect(f); f.connect(g); g.connect(this.sfxBus); s.start(t, Math.random() * .5); s.stop(t + dur + .05);
   },
   play(name) {
-    if (!this.ctx || this.muted) return;
+    if (!this.ctx || this.vol.sfx <= 0) return;
     const now = this.ctx.currentTime, gap = { hit: .045, crit: .05, gem: .04, spit: .06, fire: .08, shoot: .05, pop: .08, warn: .12, tell: .2 }[name] || 0;
     if (gap && this.last[name] && now - this.last[name] < gap) return; this.last[name] = now;
     switch (name) {
@@ -48,7 +56,7 @@ const Snd = {
         const L = name === 'roar' ? 1 : .55, c = this.ctx, t = c.currentTime, f = c.createBiquadFilter(), g = c.createGain();
         f.type = 'lowpass'; f.frequency.value = 900; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.3, t + .08); g.gain.exponentialRampToValueAtTime(.0001, t + L);
         for (const fr of [92, 138, 69]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(fr * 1.3, t); o.frequency.exponentialRampToValueAtTime(fr * .8, t + L); const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 23; lg.gain.value = fr * .12; lfo.connect(lg); lg.connect(o.frequency); o.connect(f); o.start(t); lfo.start(t); o.stop(t + L + .05); lfo.stop(t + L + .05); }
-        f.connect(g); g.connect(this.out); this.noiseHit(L, .18, 'bandpass', 700, 300, 0, .8); break;
+        f.connect(g); g.connect(this.sfxBus); this.noiseHit(L, .18, 'bandpass', 700, 300, 0, .8); break;
       }
       case 'boom': this.noiseHit(.8, .5, 'lowpass', 900, 60); this.tone('sine', 110, 30, .6, .35); break;
       case 'pop': this.noiseHit(.25, .25, 'lowpass', 1500, 100); this.tone('sine', 200, 50, .2, .15); break;
@@ -65,7 +73,7 @@ const Snd = {
   },
   // musiques (boucles ElevenLabs) : une par monde + le Roi Dragon
   startMusic() {
-    const c = this.ctx; this.musicBus = c.createGain(); this.musicBus.gain.value = .55; this.musicBus.connect(this.out);
+    const c = this.ctx; this.musicBus = c.createGain(); this.musicBus.gain.value = this.vol.music * this.MUSIC_GAIN; this.musicBus.connect(this.out);
     this.buffers = {}; this.track = null; this.cur = null;
     const src = window.MUSIC || {};
     for (const k in src) {
@@ -113,8 +121,12 @@ window.addEventListener('resize', resize); resize();
 
 const game = new Game({ sfx: n => Snd.play(n), store });
 window.__game = game; window.__snd = Snd;
-try { Snd.muted = localStorage.getItem('dragon-mute') === '1'; } catch (e) {}
-DR.muted = Snd.muted;
+try { const v = JSON.parse(localStorage.getItem('dragon-volume') || 'null'); if (v) { Snd.vol.music = +v.music; Snd.vol.sfx = +v.sfx; } } catch (e) {}
+DR.vol = Snd.vol;
+let soundPaused = false, drag = null;
+function openSound() { DR.soundPanel = true; soundPaused = false; if (!game.paused && ['intro', 'fight', 'walk', 'open', 'victory', 'loot'].includes(game.state)) { game.paused = true; soundPaused = true; } }
+function closeSound() { DR.soundPanel = false; if (soundPaused) game.paused = false; soundPaused = false; }
+function slide(b, x) { Snd.setVolume(b.kind, (x - b.sx) / b.sw); }
 try { const md = localStorage.getItem('dragon-mode'); game.mode = ['hardcore', 'lives', 'continue'].includes(md) ? md : localStorage.getItem('dragon-continue') === '1' ? 'continue' : 'hardcore'; } catch (e) {}
 
 // ---- contrôles
@@ -148,7 +160,8 @@ window.addEventListener('popstate', () => {
 if (PWA && 'serviceWorker' in navigator && location.protocol === 'https:') window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); });
 
 function act(a) {
-  if (a === 'mute') { Snd.setMuted(!Snd.muted); DR.muted = Snd.muted; return; }
+  if (a === 'mute') { if (DR.soundPanel) closeSound(); else openSound(); return; }
+  if (a === 'soundClose') { closeSound(); return; }
   if (a === 'pause') { game.paused = true; return; }
   if (a === 'resume') { game.paused = false; return; }
   if (a === 'menu') { game.paused = false; game.state = 'title'; try { history.back(); } catch (e) {} return; }
@@ -162,17 +175,21 @@ function act(a) {
 cv.addEventListener('pointerdown', e => {
   e.preventDefault(); Snd.init();
   const p = toLogic(e);
-  for (const b of DR.buttons) if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) { act(b.action); return; }
-  if (game.paused) return;
+  for (const b of DR.buttons) if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) {
+    if (b.kind) { drag = { b, id: e.pointerId }; slide(b, p.x); try { cv.setPointerCapture(e.pointerId); } catch (er) {} return; }
+    act(b.action); return;
+  }
+  if (game.paused || DR.soundPanel) return;
   if (!joy.active) { joy.active = true; joy.id = e.pointerId; joy.bx = p.x; joy.by = p.y; joy.dx = joy.dy = 0; try { cv.setPointerCapture(e.pointerId); } catch (er) {} }
 });
 cv.addEventListener('pointermove', e => {
+  if (drag && e.pointerId === drag.id) { slide(drag.b, toLogic(e).x); return; }
   if (!joy.active || e.pointerId !== joy.id) return;
   const p = toLogic(e); let dx = (p.x - joy.bx) / 58, dy = (p.y - joy.by) / 58; const m = Math.hypot(dx, dy);
   if (m > 1) { joy.bx += (p.x - joy.bx) * (1 - 1 / m); joy.by += (p.y - joy.by) * (1 - 1 / m); dx /= m; dy /= m; }
   joy.dx = dx; joy.dy = dy;
 });
-const end = e => { if (e.pointerId === joy.id) { joy.active = false; joy.dx = joy.dy = 0; joy.id = null; } };
+const end = e => { if (drag && e.pointerId === drag.id) { if (drag.b.kind === 'sfx') Snd.play('gem'); drag = null; } if (e.pointerId === joy.id) { joy.active = false; joy.dx = joy.dy = 0; joy.id = null; } };
 cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
 window.addEventListener('keydown', e => {
   keys[e.key.toLowerCase()] = true; Snd.init();
