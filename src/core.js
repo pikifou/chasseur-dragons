@@ -221,18 +221,22 @@ class Game {
     this.rand = mulberry32(opts.seed || ((Date.now() * 9301) | 0));
     this.sfx = opts.sfx || (() => {});
     this.store = opts.store || null;
+    this.mode = opts.mode || 'hardcore';
     this.t = 0;
     this.newRun();
     this.state = 'title';
   }
 
+  get allowContinue() { return this.mode === 'continue'; }
   newPlayer() {
-    return { x: 270, y: 800, r: 11, hp: 5, maxHp: 5, inv: 0, speed: 245, dmg: 10, rate: 2.6, multi: 0, diag: 0, crit: 0, burn: 0,
+    const hp = this.mode === 'lives' ? 3 : 5;
+    return { x: 270, y: 800, r: 11, hp, maxHp: hp, inv: 0, speed: 245, dmg: 10, rate: 2.6, multi: 0, diag: 0, crit: 0, burn: 0,
       shieldMax: 0, shield: 0, shieldCd: 0, fireCd: 0, still: 0, face: 1, walk: 0, moving: false, recoil: 0, flash: 0, target: null, hits: 0 };
   }
   newRun() {
     this.player = this.newPlayer();
     this.ups = {}; this.gems = 0; this.levelIdx = 0; this.runTime = 0; this.deaths = 0;
+    this.lives = this.mode === 'lives' ? 3 : 0; this.livesLost = 0; this.lifeMsg = null;
     this.clearRoom();
   }
   clearRoom() {
@@ -272,7 +276,7 @@ class Game {
   }
 
   startLevel(i) {
-    this.levelIdx = i; this.clearRoom();
+    this.levelIdx = i; this.clearRoom(); this.roomHits = this.player.hits;
     const L = this.level, p = this.player;
     p.x = 270; p.y = 990; p.inv = 0; p.fireCd = .3; p.still = 0; p.target = null;
     for (const b of L.bosses) {
@@ -342,8 +346,28 @@ class Game {
     p.hp--; p.hits++; p.inv = 1.3; p.flash = .15;
     this.hurtFlash = .5; this.shake(14); this.freeze = .07; this.sfx('hurt');
     this.burst(p.x, p.y - 20, 22, ['#ff4b4b', '#ffd0d0', '#ffffff'], 300);
+    if (p.hp <= 0 && this.mode === 'lives' && this.lives > 0) { this.loseLife(); return true; }
     if (p.hp <= 0) { this.state = 'dead'; this.stateT = 0; this.slowT = 1.2; this.sfx('lose'); if (!this.allowContinue && this.store) this.store.set(null); this.explosion(p.x, p.y - 20, .7, 'storm'); }
     return true;
+  }
+  loseLife() {
+    const p = this.player;
+    this.lives--; this.livesLost++;
+    p.hp = p.maxHp; p.shield = p.shieldMax; p.inv = 3; p.flash = 0;
+    this.lifeMsg = { t: 0, txt: 'VIE PERDUE !', sub: this.lives === 0 ? 'Dernière vie !' : 'Encore ' + this.lives + (this.lives > 1 ? ' vies' : ' vie'), col: '#ff6a6a' };
+    this.slowT = 1; this.shake(18); this.sfx('lose');
+    this.explosion(p.x, p.y - 20, .8, 'ice');
+    for (const b of this.bullets) this.burst(b.x, b.y, 3, ['#bfefff', '#ffffff'], 80, 3);
+    this.bullets = []; this.hazards = this.hazards.filter(h => h.kind === 'scorch');
+    this.ring(p.x, p.y - 30, 140, '#9ff0ff', 12);
+    for (const e of this.enemies) if (e.boss && !e.dying) { e.gen = null; e.cd = 1.6; e.dash = null; e.charging = false; e.home = true; }
+  }
+  extraLife(why) {
+    if (this.mode !== 'lives') return;
+    this.lives = Math.min(9, this.lives + 1);
+    const p = this.player;
+    this.lifeMsg = { t: 0, txt: '+1 VIE !', sub: why, col: '#7dff8a' };
+    this.sfx('up'); this.ring(p.x, p.y - 30, 90, '#7dff8a', 8); this.burst(p.x, p.y - 30, 24, ['#b6ffb0', '#ffffff', '#7dff8a'], 260);
   }
   damage(e, dmg, crit, burn) {
     if (e.dead || e.dying) return;
@@ -372,6 +396,7 @@ class Game {
     if (this.enemies.every(x => !x.boss || x.dying || x.dead)) {
       // victoire : on nettoie l'écran
       this.state = 'victory'; this.stateT = 0; this.slowT = .9;
+      if (this.mode === 'lives' && this.player.hits === this.roomHits) this.extraLife('Salle sans une égratignure');
       for (const b of this.bullets) this.burst(b.x, b.y, 3, ['#fff7c0', '#ffe066'], 80, 3);
       this.bullets = []; this.hazards = this.hazards.filter(h => h.kind === 'scorch');
       for (const m of this.enemies) if (m.minion && !m.dead) this.kill(m);
@@ -692,7 +717,7 @@ class Game {
       else {
         const dx = p.x - g.x, dy = p.y - 25 - g.y, d = Math.hypot(dx, dy);
         const sp = 300 + (g.t - .55) * 1400;
-        if (d < 22) { this.gems++; this.sfx('gem'); this.burst(p.x, p.y - 25, 3, ['#9ff', '#fff'], 90, 3); continue; }
+        if (d < 22) { this.gems++; if (this.gems % 100 === 0) this.extraLife(this.gems + ' gemmes'); this.sfx('gem'); this.burst(p.x, p.y - 25, 3, ['#9ff', '#fff'], 90, 3); continue; }
         g.x += dx / d * Math.min(d, sp * dt); g.y += dy / d * Math.min(d, sp * dt); g.z *= .9;
       }
       out.push(g);
@@ -703,6 +728,7 @@ class Game {
     if (this.shakeAmt > 0) this.shakeAmt = Math.max(0, this.shakeAmt - dt * 40);
     if (this.hurtFlash > 0) this.hurtFlash -= dt;
     if (this.banner) this.banner.t += dt;
+    if (this.lifeMsg) { this.lifeMsg.t += dt; if (this.lifeMsg.t > 2.2) this.lifeMsg = null; }
     if (this.headless) return;
     for (const q of this.parts) {
       q.life -= dt; q.x += q.vx * dt; q.y += q.vy * dt;

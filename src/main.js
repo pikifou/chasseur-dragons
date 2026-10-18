@@ -112,7 +112,7 @@ const game = new Game({ sfx: n => Snd.play(n), store });
 window.__game = game;
 try { Snd.muted = localStorage.getItem('dragon-mute') === '1'; } catch (e) {}
 DR.muted = Snd.muted;
-try { game.allowContinue = localStorage.getItem('dragon-continue') === '1'; } catch (e) { game.allowContinue = false; }
+try { const md = localStorage.getItem('dragon-mode'); game.mode = ['hardcore', 'lives', 'continue'].includes(md) ? md : localStorage.getItem('dragon-continue') === '1' ? 'continue' : 'hardcore'; } catch (e) {}
 
 // ---- contrôles
 const joy = { active: false, id: null, bx: 0, by: 0, dx: 0, dy: 0 };
@@ -153,7 +153,7 @@ function act(a) {
   if (a === 'new') { DR.tutoMoved = false; if (game.state === 'title') enterGame(); game.startNew(); return; }
   if (a === 'continue') { enterGame(); game.continueGame(); return; }
   if (a === 'retry') { game.retry(); return; }
-  if (a === 'toggleCont') { game.allowContinue = !game.allowContinue; try { localStorage.setItem('dragon-continue', game.allowContinue ? '1' : ''); } catch (e) {} Snd.play('cards'); return; }
+  if (a.startsWith('mode:')) { game.mode = a.slice(5); try { localStorage.setItem('dragon-mode', game.mode); } catch (e) {} Snd.play('cards'); return; }
   if (a.startsWith('card')) { game.chooseUpgrade(+a.slice(4)); return; }
 }
 cv.addEventListener('pointerdown', e => {

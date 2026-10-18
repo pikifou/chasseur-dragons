@@ -359,6 +359,11 @@ function drawHUD(ctx, game, t) {
   const g = ctx.createLinearGradient(0, 0, 0, 110); g.addColorStop(0, 'rgba(8,6,14,.75)'); g.addColorStop(1, 'rgba(8,6,14,0)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, 110);
   txt(ctx, 'SALLE ' + (game.levelIdx + 1) + ' / ' + LEVELS.length, 18, 20, 17, '#ffe7a6', 'left');
+  if (game.mode === 'lives') {
+    const hi = IMG.hero, hh = 30, hw = hh * hi.width / hi.height, pulse = game.lifeMsg ? 1 + .25 * Math.max(0, Math.sin(game.lifeMsg.t * 12)) * Math.max(0, 1 - game.lifeMsg.t) : 1;
+    ctx.save(); ctx.translate(176, 34); ctx.scale(pulse, pulse); ctx.drawImage(hi, -hw / 2, -hh, hw, hh); ctx.restore();
+    txt(ctx, 'x' + game.lives, 192, 21, 19, game.lives ? '#ffffff' : '#ff6a6a', 'left');
+  }
   // gemmes
   ctx.save(); ctx.translate(374, 20); ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(9, 0); ctx.lineTo(0, 10); ctx.lineTo(-9, 0); ctx.closePath(); ctx.fillStyle = '#7ff7ff'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#0b4a5a'; ctx.stroke(); ctx.restore();
   txt(ctx, String(game.gems), 390, 21, 19, '#ffffff', 'left');
@@ -486,16 +491,19 @@ function drawTitle(ctx, game, t, saved) {
   ctx.restore();
   // héros
   const hi = IMG.hero, hh = 150, hw = hh * hi.width / hi.height;
-  drawShadow(ctx, 130, 912, 40, .45);
-  ctx.drawImage(hi, 130 - hw / 2, 912 - hh + Math.sin(t * 2.5) * 2, hw, hh);
+  drawShadow(ctx, 98, 912, 40, .45);
+  ctx.drawImage(hi, 98 - hw / 2, 912 - hh + Math.sin(t * 2.5) * 2, hw, hh);
   button(ctx, 'JOUER', 325, 680, 280, 78, 'new', '#ffbf2a', t);
-  // case à cocher « Continue autorisé »
-  { const on = !!game.allowContinue, bx = 205, by = 762;
-    rrect(ctx, bx - 15, by - 15, 30, 30, 7); ctx.fillStyle = on ? '#ffbf2a' : 'rgba(10,6,20,.75)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#ffe7a6'; ctx.stroke();
-    if (on) { ctx.strokeStyle = '#2a1206'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(bx - 8, by + 1); ctx.lineTo(bx - 2, by + 8); ctx.lineTo(bx + 9, by - 8); ctx.stroke(); ctx.lineCap = 'butt'; }
-    txt(ctx, 'Continue autorisé', bx + 26, by + 2, 22, '#ffffff', 'left', '#140a20', 5);
-    txt(ctx, on ? 'Si tu perds, tu recommences la salle' : 'Si tu perds, tu recommences au début', 340, by + 30, 14, '#e8dcff', 'center', '#140a20', 4);
-    R.buttons.push({ x: bx - 30, y: by - 24, w: 300, h: 48, action: 'toggleCont' }); }
+  // choix du mode
+  { const modes = [['hardcore', 'HARDCORE'], ['lives', 'VIES'], ['continue', 'CONTINUE']], y = 765, bw = 118, gap = 8, x0 = 340 - (bw * 3 + gap * 2) / 2;
+    modes.forEach(([id, label], i) => {
+      const on = game.mode === id, x = x0 + i * (bw + gap);
+      rrect(ctx, x, y - 19, bw, 38, 12); ctx.fillStyle = on ? '#ffbf2a' : 'rgba(10,6,20,.75)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = on ? '#2a1206' : 'rgba(255,231,166,.6)'; ctx.stroke();
+      txt(ctx, label, x + bw / 2, y + 2, 17, on ? '#2a1206' : '#ffe7a6', 'center', on ? null : '#140a20', 4);
+      R.buttons.push({ x, y: y - 22, w: bw, h: 44, action: 'mode:' + id });
+    });
+    const d = { hardcore: 'Perdu = retour à la salle 1', lives: '3 vies de 3 coeurs · +1 vie tous les 100 gemmes', continue: 'Perdu = on recommence la salle' }[game.mode];
+    txt(ctx, d, 340, y + 34, 14, '#e8dcff', 'center', '#140a20', 4); }
   if (saved) button(ctx, 'CONTINUER · SALLE ' + (saved + 1), 325, 845, 280, 58, 'continue', '#4fb0ff', t + 1, true);
   const ins = R.installMode && R.installMode();
   if (ins === 'prompt') button(ctx, "INSTALLER L'APPLI", 340, saved ? 905 : 850, 250, 44, 'install', '#5fd38a', t + 2, true);
@@ -515,7 +523,7 @@ function drawDead(ctx, game, t) {
     txt(ctx, 'GAME OVER', W / 2, 340, 70, '#ff5a5a', 'center', '#1a0408', 14);
     txt(ctx, 'Salle atteinte : ' + (game.levelIdx + 1) + ' / ' + LEVELS.length, W / 2, 425, 26, '#ffe0e0');
     txt(ctx, 'Gemmes : ' + game.gems, W / 2, 462, 22, '#7ff7ff');
-    txt(ctx, 'Tout recommence depuis la salle 1.', W / 2, 500, 17, '#ffbcbc');
+    txt(ctx, game.mode === 'lives' ? 'Plus de vies : retour à la salle 1.' : 'Tout recommence depuis la salle 1.', W / 2, 500, 17, '#ffbcbc');
     ctx.globalAlpha = 1;
     if (k >= 1) { button(ctx, 'REJOUER', W / 2, 590, 270, 78, 'new', '#ffbf2a', t); button(ctx, 'MENU', W / 2, 690, 200, 58, 'menu', '#4fb0ff', t + 1, true); }
   }
@@ -536,7 +544,9 @@ function drawEnd(ctx, game, t, dt) {
   const tm = Math.floor(game.runTime), mm = Math.floor(tm / 60), ss = String(tm % 60).padStart(2, '0');
   txt(ctx, 'Gemmes : ' + game.gems, W / 2, 450, 24, '#7ff7ff');
   txt(ctx, 'Temps : ' + mm + ' min ' + ss, W / 2, 490, 24, '#ffe7a6');
-  if (game.allowContinue) txt(ctx, 'Continues : ' + game.deaths, W / 2, 530, 24, '#ffb4b4'); else txt(ctx, 'Sans continue !', W / 2, 530, 24, '#ffd84a');
+  if (game.mode === 'continue') txt(ctx, 'Continues : ' + game.deaths, W / 2, 530, 24, '#ffb4b4');
+  else if (game.mode === 'lives') txt(ctx, 'Vies restantes : ' + game.lives + ' (perdues : ' + game.livesLost + ')', W / 2, 530, 22, '#b6ffb0');
+  else txt(ctx, 'En hardcore, sans continue !', W / 2, 530, 24, '#ffd84a');
   ctx.globalAlpha = 1;
   if (game.stateT > 1.2) button(ctx, 'REJOUER', W / 2, 660, 260, 78, 'new', '#ffbf2a', t);
 }
@@ -623,6 +633,13 @@ R.draw = function (ctx, game, dt, joy) {
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.rotate(t * .5); for (let i = 0; i < 10; i++) { ctx.rotate(TAU / 10); ctx.fillStyle = 'rgba(255,210,80,.13)'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-30, -260); ctx.lineTo(30, -260); ctx.closePath(); ctx.fill(); } ctx.restore();
       ctx.scale(s, s); txt(ctx, 'VICTOIRE !', 0, 0, 66, '#ffd84a', 'center', '#2a0c04', 13); ctx.restore();
     }
+  }
+  if (game.lifeMsg) {
+    const m = game.lifeMsg, s = ease.back(clamp(m.t / .35, 0, 1)), a = 1 - clamp((m.t - 1.7) / .5, 0, 1);
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(W / 2, 470); ctx.scale(s, s);
+    txt(ctx, m.txt, 0, 0, 52, m.col, 'center', '#1a0408', 11);
+    if (m.sub) txt(ctx, m.sub, 0, 46, 22, '#ffffff', 'center', '#140a20', 5);
+    ctx.restore();
   }
   if (st === 'upgrade') drawCards(ctx, game, t);
   if (st === 'walk' && game.stateT > 4 && Math.hypot(p.x - DOOR.x, p.y - A.t) > 150) txt(ctx, 'Monte vers la porte !', W / 2, 250, 22, '#ffe7a6', 'center', '#1a0a20', 5);
