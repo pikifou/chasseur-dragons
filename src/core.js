@@ -243,8 +243,8 @@ class Game {
   get world() { return WORLDS[this.level.world]; }
 
   // ---- sauvegarde
-  save() { if (this.store) this.store.set({ level: this.levelIdx + 1, ups: this.ups, gems: this.gems }); }
-  savedLevel() { const s = this.store && this.store.get(); return s && s.level > 0 && s.level < LEVELS.length ? s.level : 0; }
+  save() { if (this.store && this.allowContinue) this.store.set({ level: this.levelIdx + 1, ups: this.ups, gems: this.gems }); }
+  savedLevel() { if (!this.allowContinue) return 0; const s = this.store && this.store.get(); return s && s.level > 0 && s.level < LEVELS.length ? s.level : 0; }
 
   // ---- actions (boutons)
   startNew() { this.newRun(); this.startLevel(0); }
@@ -342,7 +342,7 @@ class Game {
     p.hp--; p.hits++; p.inv = 1.3; p.flash = .15;
     this.hurtFlash = .5; this.shake(14); this.freeze = .07; this.sfx('hurt');
     this.burst(p.x, p.y - 20, 22, ['#ff4b4b', '#ffd0d0', '#ffffff'], 300);
-    if (p.hp <= 0) { this.state = 'dead'; this.stateT = 0; this.slowT = 1.2; this.sfx('lose'); this.explosion(p.x, p.y - 20, .7, 'storm'); }
+    if (p.hp <= 0) { this.state = 'dead'; this.stateT = 0; this.slowT = 1.2; this.sfx('lose'); if (!this.allowContinue && this.store) this.store.set(null); this.explosion(p.x, p.y - 20, .7, 'storm'); }
     return true;
   }
   damage(e, dmg, crit, burn) {

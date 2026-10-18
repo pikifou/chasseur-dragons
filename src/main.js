@@ -112,6 +112,7 @@ const game = new Game({ sfx: n => Snd.play(n), store });
 window.__game = game;
 try { Snd.muted = localStorage.getItem('dragon-mute') === '1'; } catch (e) {}
 DR.muted = Snd.muted;
+try { game.allowContinue = localStorage.getItem('dragon-continue') === '1'; } catch (e) { game.allowContinue = false; }
 
 // ---- contrôles
 const joy = { active: false, id: null, bx: 0, by: 0, dx: 0, dy: 0 };
@@ -152,6 +153,7 @@ function act(a) {
   if (a === 'new') { DR.tutoMoved = false; if (game.state === 'title') enterGame(); game.startNew(); return; }
   if (a === 'continue') { enterGame(); game.continueGame(); return; }
   if (a === 'retry') { game.retry(); return; }
+  if (a === 'toggleCont') { game.allowContinue = !game.allowContinue; try { localStorage.setItem('dragon-continue', game.allowContinue ? '1' : ''); } catch (e) {} Snd.play('cards'); return; }
   if (a.startsWith('card')) { game.chooseUpgrade(+a.slice(4)); return; }
 }
 cv.addEventListener('pointerdown', e => {
@@ -173,7 +175,7 @@ window.addEventListener('keydown', e => {
   keys[e.key.toLowerCase()] = true; Snd.init();
   if (e.key === 'Enter' || e.key === ' ') {
     if (game.state === 'title') act(game.savedLevel() ? 'continue' : 'new');
-    else if (game.state === 'dead' && game.stateT > 1.2) act('retry');
+    else if (game.state === 'dead' && game.stateT > 1.2) act(game.allowContinue ? 'retry' : 'new');
     else if (game.state === 'end' && game.stateT > 1.2) act('new');
   }
   if (game.state === 'upgrade' && ['1', '2', '3'].includes(e.key)) act('card' + (+e.key - 1));

@@ -488,22 +488,37 @@ function drawTitle(ctx, game, t, saved) {
   const hi = IMG.hero, hh = 150, hw = hh * hi.width / hi.height;
   drawShadow(ctx, 130, 912, 40, .45);
   ctx.drawImage(hi, 130 - hw / 2, 912 - hh + Math.sin(t * 2.5) * 2, hw, hh);
-  button(ctx, 'JOUER', 325, 700, 280, 78, 'new', '#ffbf2a', t);
-  if (saved) button(ctx, 'CONTINUER · SALLE ' + (saved + 1), 325, 800, 280, 62, 'continue', '#4fb0ff', t + 1, true);
-  txt(ctx, 'Glisse pour bouger · Arrête-toi pour tirer', W / 2, 940, 15, '#e8dcff', 'center', '#140a20', 4);
+  button(ctx, 'JOUER', 325, 680, 280, 78, 'new', '#ffbf2a', t);
+  // case à cocher « Continue autorisé »
+  { const on = !!game.allowContinue, bx = 205, by = 762;
+    rrect(ctx, bx - 15, by - 15, 30, 30, 7); ctx.fillStyle = on ? '#ffbf2a' : 'rgba(10,6,20,.75)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#ffe7a6'; ctx.stroke();
+    if (on) { ctx.strokeStyle = '#2a1206'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(bx - 8, by + 1); ctx.lineTo(bx - 2, by + 8); ctx.lineTo(bx + 9, by - 8); ctx.stroke(); ctx.lineCap = 'butt'; }
+    txt(ctx, 'Continue autorisé', bx + 26, by + 2, 22, '#ffffff', 'left', '#140a20', 5);
+    txt(ctx, on ? 'Si tu perds, tu recommences la salle' : 'Si tu perds, tu recommences au début', 340, by + 30, 14, '#e8dcff', 'center', '#140a20', 4);
+    R.buttons.push({ x: bx - 30, y: by - 24, w: 300, h: 48, action: 'toggleCont' }); }
+  if (saved) button(ctx, 'CONTINUER · SALLE ' + (saved + 1), 325, 845, 280, 58, 'continue', '#4fb0ff', t + 1, true);
   const ins = R.installMode && R.installMode();
-  if (ins === 'prompt') button(ctx, "INSTALLER L'APPLI", 340, saved ? 878 : 790, 250, 48, 'install', '#5fd38a', t + 2, true);
-  else if (ins === 'ios') { const y = saved ? 868 : 790; txt(ctx, "Pour l'installer :", 340, y, 16, '#ffe7a6', 'center', '#140a20', 4); txt(ctx, 'Partager puis « Sur l\'écran d\'accueil »', 340, y + 22, 16, '#ffe7a6', 'center', '#140a20', 4); }
+  if (ins === 'prompt') button(ctx, "INSTALLER L'APPLI", 340, saved ? 905 : 850, 250, 44, 'install', '#5fd38a', t + 2, true);
+  else if (ins === 'ios') { const y = saved ? 892 : 840; txt(ctx, "Pour l'installer :", 340, y, 16, '#ffe7a6', 'center', '#140a20', 4); txt(ctx, 'Partager puis « Sur l\'écran d\'accueil »', 340, y + 22, 16, '#ffe7a6', 'center', '#140a20', 4); }
 }
 function drawDead(ctx, game, t) {
   const k = clamp((game.stateT - .8) / .4, 0, 1); if (k <= 0) return;
   ctx.fillStyle = `rgba(40,0,10,${.65 * k})`; ctx.fillRect(0, 0, W, H);
   ctx.globalAlpha = k;
-  txt(ctx, 'AÏE !', W / 2, 360, 80, '#ff5a5a', 'center', '#1a0408', 14);
-  txt(ctx, "Le dragon t'a eu…", W / 2, 440, 26, '#ffe0e0');
-  txt(ctx, 'Tes pouvoirs sont gardés.', W / 2, 480, 18, '#ffbcbc');
-  ctx.globalAlpha = 1;
-  if (k >= 1) button(ctx, 'RÉESSAYER', W / 2, 580, 270, 78, 'retry', '#ffbf2a', t);
+  if (game.allowContinue) {
+    txt(ctx, 'AÏE !', W / 2, 360, 80, '#ff5a5a', 'center', '#1a0408', 14);
+    txt(ctx, "Le dragon t'a eu…", W / 2, 440, 26, '#ffe0e0');
+    txt(ctx, 'Tes pouvoirs sont gardés.', W / 2, 480, 18, '#ffbcbc');
+    ctx.globalAlpha = 1;
+    if (k >= 1) { button(ctx, 'CONTINUE', W / 2, 580, 270, 78, 'retry', '#ffbf2a', t); button(ctx, 'MENU', W / 2, 680, 200, 58, 'menu', '#4fb0ff', t + 1, true); }
+  } else {
+    txt(ctx, 'GAME OVER', W / 2, 340, 70, '#ff5a5a', 'center', '#1a0408', 14);
+    txt(ctx, 'Salle atteinte : ' + (game.levelIdx + 1) + ' / ' + LEVELS.length, W / 2, 425, 26, '#ffe0e0');
+    txt(ctx, 'Gemmes : ' + game.gems, W / 2, 462, 22, '#7ff7ff');
+    txt(ctx, 'Tout recommence depuis la salle 1.', W / 2, 500, 17, '#ffbcbc');
+    ctx.globalAlpha = 1;
+    if (k >= 1) { button(ctx, 'REJOUER', W / 2, 590, 270, 78, 'new', '#ffbf2a', t); button(ctx, 'MENU', W / 2, 690, 200, 58, 'menu', '#4fb0ff', t + 1, true); }
+  }
 }
 function drawEnd(ctx, game, t, dt) {
   const k = clamp(game.stateT / .6, 0, 1);
@@ -521,7 +536,7 @@ function drawEnd(ctx, game, t, dt) {
   const tm = Math.floor(game.runTime), mm = Math.floor(tm / 60), ss = String(tm % 60).padStart(2, '0');
   txt(ctx, 'Gemmes : ' + game.gems, W / 2, 450, 24, '#7ff7ff');
   txt(ctx, 'Temps : ' + mm + ' min ' + ss, W / 2, 490, 24, '#ffe7a6');
-  txt(ctx, 'Chutes : ' + game.deaths, W / 2, 530, 24, '#ffb4b4');
+  if (game.allowContinue) txt(ctx, 'Continues : ' + game.deaths, W / 2, 530, 24, '#ffb4b4'); else txt(ctx, 'Sans continue !', W / 2, 530, 24, '#ffd84a');
   ctx.globalAlpha = 1;
   if (game.stateT > 1.2) button(ctx, 'REJOUER', W / 2, 660, 260, 78, 'new', '#ffbf2a', t);
 }
