@@ -113,9 +113,9 @@ const UPS = [
   { id: 'diag', name: 'Éventail', desc: '+2 flèches en biais', icon: '✨', max: 2, apply: p => { p.diag++; } },
   { id: 'rate', name: 'Tir rapide', desc: 'Tire 20 % plus vite', icon: '⚡', max: 4, apply: p => { p.rate *= 1.2; } },
   { id: 'dmg', name: "Pointes d'acier", desc: 'Dégâts +25 %', icon: '⚔️', max: 5, apply: p => { p.dmg *= 1.25; } },
-  { id: 'crit', name: 'Œil de lynx', desc: 'Coups critiques x2', icon: '🎯', max: 3, apply: p => { p.crit += .15; } },
+  { id: 'crit', name: 'Oeil de lynx', desc: 'Coups critiques x2', icon: '🎯', max: 3, apply: p => { p.crit += .15; } },
   { id: 'burn', name: 'Flèches de feu', desc: 'Le dragon brûle', icon: '🔥', max: 3, apply: p => { p.burn++; } },
-  { id: 'heart', name: 'Grand cœur', desc: '+1 cœur et soin', icon: '❤️', max: 4, apply: p => { p.maxHp++; p.hp = p.maxHp; } },
+  { id: 'heart', name: 'Grand coeur', desc: '+1 coeur et soin', icon: '❤️', max: 4, apply: p => { p.maxHp++; p.hp = p.maxHp; } },
   { id: 'shield', name: 'Bouclier', desc: 'Bloque un coup', icon: '🛡️', max: 2, apply: p => { p.shieldMax++; p.shield = p.shieldMax; } },
   { id: 'speed', name: 'Bottes de vent', desc: 'Court 15 % plus vite', icon: '👟', max: 3, apply: p => { p.speed *= 1.15; } },
 ];

@@ -403,7 +403,7 @@ function drawHUD(ctx, game, t) {
   for (const u of UPS.slice().reverse()) {
     const n = game.ups[u.id]; if (!n) continue;
     if (n > 1) { txt(ctx, 'x' + n, ux, 104, 13, '#ffe7a6', 'right'); ux -= 22; }
-    ctx.textAlign = 'right'; ctx.fillText(u.icon, ux, 98); ux -= 26;
+    ctx.font = '18px sans-serif'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(u.icon, ux, 98); ux -= 26;
   }
   // bouton son
   R.buttons.push({ x: W - 46, y: 0, w: 46, h: 40, action: 'mute' });
@@ -458,7 +458,7 @@ function drawCards(ctx, game, t) {
     const g = ctx.createLinearGradient(0, -ch / 2, 0, ch / 2); g.addColorStop(0, '#4a3478'); g.addColorStop(1, '#22163c');
     ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = '#ffcf4a'; ctx.stroke();
     rrect(ctx, -cw / 2 + 10, -ch / 2 + 12, cw - 20, 92, 12); ctx.fillStyle = 'rgba(255,255,255,.1)'; ctx.fill();
-    ctx.font = '56px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(u.icon, 0, -ch / 2 + 60 + Math.sin(t * 3 + i) * 3);
+    ctx.font = '56px sans-serif'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(u.icon, 0, -ch / 2 + 60 + Math.sin(t * 3 + i) * 3);
     wrapText(ctx, u.name.toUpperCase(), 0, -2, cw - 18, 19, '#ffffff');
     wrapText(ctx, u.desc, 0, 56, cw - 22, 15, '#d9ccff');
     const lv = game.ups[u.id] || 0;
