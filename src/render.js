@@ -1,7 +1,7 @@
 // ===== Chasseur de Dragons : rendu canvas =====
 (function () {
 'use strict';
-const { W, H, A, DOOR, COL, LEVELS, WORLDS, UPS, TAU, clamp, lerp, ease } = DG;
+const { W, H, A, DOOR, COL, LEVELS, WORLDS, UPS, TAU, clamp, lerp, ease, tr, I18N } = DG;
 const FONT = "'Luckiest Guy', 'Arial Black', 'Trebuchet MS', sans-serif";
 const IMG = {}, SIL = {}, GLOW = {};
 let ROOMS = {}, VIGNETTE = null;
@@ -358,7 +358,7 @@ function drawHUD(ctx, game, t) {
   // bandeau du haut
   const g = ctx.createLinearGradient(0, 0, 0, 110); g.addColorStop(0, 'rgba(8,6,14,.75)'); g.addColorStop(1, 'rgba(8,6,14,0)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, 110);
-  txt(ctx, 'SALLE ' + (game.levelIdx + 1) + ' / ' + LEVELS.length, 18, 20, 17, '#ffe7a6', 'left');
+  txt(ctx, tr('room', { n: game.levelIdx + 1, m: LEVELS.length }), 18, 20, 17, '#ffe7a6', 'left');
   if (game.mode === 'lives') {
     const hi = IMG.hero, hh = 30, hw = hh * hi.width / hi.height, pulse = game.lifeMsg ? 1 + .25 * Math.max(0, Math.sin(game.lifeMsg.t * 12)) * Math.max(0, 1 - game.lifeMsg.t) : 1;
     ctx.save(); ctx.translate(176, 34); ctx.scale(pulse, pulse); ctx.drawImage(hi, -hw / 2, -hh, hw, hh); ctx.restore();
@@ -374,7 +374,7 @@ function drawHUD(ctx, game, t) {
     bosses.forEach((e, i) => {
       const x = n === 1 ? (W - bw) / 2 : 30 + i * (bw + gap), y = 58, bh = 15;
       const L = LEVELS[game.levelIdx].bosses[i];
-      const name = n === 1 ? LEVELS[game.levelIdx].name : (L.t === 'vert' ? (i ? 'Pousse II' : 'Pousse I') : L.t === 'glace' ? 'Givre' : L.t === 'orage' ? 'Zap' : 'Braise');
+      const name = n === 1 ? tr('lv' + game.levelIdx) : tr(L.t === 'vert' ? (i ? 'boss.vert2' : 'boss.vert1') : 'boss.' + L.t);
       txt(ctx, name.toUpperCase(), x + bw / 2, y - 14, n === 1 ? 20 : 16, '#ffffff');
       rrect(ctx, x - 3, y - 3, bw + 6, bh + 6, 8); ctx.fillStyle = '#12080f'; ctx.fill();
       const k = Math.max(0, e.hp / e.maxHp), kl = Math.max(0, e.lag / e.maxHp);
@@ -441,9 +441,9 @@ function drawSound(ctx, t) {
   rrect(ctx, cx - w / 2, top, w, h, 22);
   const g = ctx.createLinearGradient(0, top, 0, top + h); g.addColorStop(0, '#4a3478'); g.addColorStop(1, '#22163c');
   ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = '#ffcf4a'; ctx.stroke();
-  txt(ctx, 'SON', cx, top + 44, 38, '#ffd34a', 'center', '#2a1206', 8);
+  txt(ctx, tr('sound'), cx, top + 44, 38, '#ffd34a', 'center', '#2a1206', 8);
   const v = R.vol || { music: 1, sfx: 1 };
-  [['music', 'Musique', top + 125], ['sfx', 'Bruitages', top + 215]].forEach(([k, label, y]) => {
+  [['music', tr('music'), top + 125], ['sfx', tr('sfx'), top + 215]].forEach(([k, label, y]) => {
     const sx = cx - 160, sw = 320, val = v[k];
     txt(ctx, label, sx, y - 30, 22, '#ffffff', 'left', '#140a20', 5);
     txt(ctx, Math.round(val * 100) + ' %', sx + sw, y - 30, 20, '#ffe7a6', 'right', '#140a20', 5);
@@ -452,7 +452,7 @@ function drawSound(ctx, t) {
     ctx.beginPath(); ctx.arc(sx + sw * val, y, 17, 0, TAU); ctx.fillStyle = '#fff6dc'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = '#2a1206'; ctx.stroke();
     R.buttons.push({ x: sx - 24, y: y - 32, w: sw + 48, h: 64, action: 'slider', kind: k, sx, sw });
   });
-  button(ctx, 'OK', cx, top + 300, 180, 64, 'soundClose', '#ffbf2a', t);
+  button(ctx, tr('ok'), cx, top + 300, 180, 64, 'soundClose', '#ffbf2a', t);
 }
 
 function drawBanner(ctx, b) {
@@ -464,9 +464,10 @@ function drawBanner(ctx, b) {
   const g = ctx.createLinearGradient(0, y - 70, 0, y + 70); g.addColorStop(0, 'rgba(20,6,10,0)'); g.addColorStop(.2, 'rgba(20,6,10,.85)'); g.addColorStop(.8, 'rgba(20,6,10,.85)'); g.addColorStop(1, 'rgba(20,6,10,0)');
   ctx.fillStyle = g; ctx.fillRect(0, y - 80, W, 160);
   ctx.fillStyle = b.king ? '#ff4a3a' : '#ffc94a'; ctx.fillRect(0, y - 58, W, 3); ctx.fillRect(0, y + 55, W, 3);
-  txt(ctx, b.king ? 'COMBAT FINAL' : 'SALLE ' + (b.idx + 1), W / 2, y - 34, 22, b.king ? '#ff8a7a' : '#ffd36b');
-  txt(ctx, b.name.toUpperCase(), W / 2, y + 6, b.name.length > 12 ? 42 : 50, '#ffffff', 'center', '#2a0a10', 10);
-  txt(ctx, b.sub, W / 2, y + 40, 19, '#ffd9b0');
+  txt(ctx, b.king ? tr('finalBattle') : tr('roomN', { n: b.idx + 1 }), W / 2, y - 34, 22, b.king ? '#ff8a7a' : '#ffd36b');
+  const bn = tr('lv' + b.idx), bs = tr('lv' + b.idx + '.sub');
+  txt(ctx, bn.toUpperCase(), W / 2, y + 6, bn.length > 12 ? 42 : 50, '#ffffff', 'center', '#2a0a10', 10);
+  txt(ctx, bs, W / 2, y + 40, 19, '#ffd9b0');
   ctx.restore();
 }
 function wrapText(ctx, s, x, y, maxW, size, col) {
@@ -480,7 +481,7 @@ function drawCards(ctx, game, t) {
   const T = game.stateT, fade = clamp(T / .3, 0, 1) * (c.picked != null ? 1 - clamp((c.pt - .5) / .4, 0, 1) : 1);
   ctx.fillStyle = `rgba(6,4,14,${.68 * fade})`; ctx.fillRect(0, 0, W, H);
   ctx.globalAlpha = fade;
-  txt(ctx, 'CHOISIS UN POUVOIR !', W / 2, 270, 34, '#ffd34a', 'center', '#2a1206', 8);
+  txt(ctx, tr('choosePower'), W / 2, 270, 34, '#ffd34a', 'center', '#2a1206', 8);
   ctx.globalAlpha = 1;
   const cw = 152, ch = 230;
   c.list.forEach((u, i) => {
@@ -496,8 +497,8 @@ function drawCards(ctx, game, t) {
     ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = '#ffcf4a'; ctx.stroke();
     rrect(ctx, -cw / 2 + 10, -ch / 2 + 12, cw - 20, 92, 12); ctx.fillStyle = 'rgba(255,255,255,.1)'; ctx.fill();
     ctx.font = '56px sans-serif'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(u.icon, 0, -ch / 2 + 60 + Math.sin(t * 3 + i) * 3);
-    wrapText(ctx, u.name.toUpperCase(), 0, -2, cw - 18, 19, '#ffffff');
-    wrapText(ctx, u.desc, 0, 56, cw - 22, 15, '#d9ccff');
+    wrapText(ctx, tr('up.' + u.id).toUpperCase(), 0, -2, cw - 18, 19, '#ffffff');
+    wrapText(ctx, tr('up.' + u.id + '.d'), 0, 56, cw - 22, 15, '#d9ccff');
     const lv = game.ups[u.id] || 0;
     for (let k = 0; k < u.max; k++) { ctx.beginPath(); ctx.arc((k - (u.max - 1) / 2) * 14, ch / 2 - 20, 4.5, 0, TAU); ctx.fillStyle = k < lv ? '#ffcf4a' : 'rgba(255,255,255,.2)'; ctx.fill(); }
     ctx.restore();
@@ -518,46 +519,67 @@ function drawTitle(ctx, game, t, saved) {
   // titre
   const s = 1 + Math.sin(t * 2) * .02;
   ctx.save(); ctx.translate(W / 2, 120); ctx.scale(s, s); ctx.rotate(-.03);
-  txt(ctx, 'CHASSEUR', 0, -30, 60, '#ffd84a', 'center', '#2a0c04', 13);
-  txt(ctx, 'DE DRAGONS', 0, 32, 50, '#ff8a3a', 'center', '#2a0c04', 12);
+  txt(ctx, tr('title1'), 0, -30, 60, '#ffd84a', 'center', '#2a0c04', 13);
+  txt(ctx, tr('title2'), 0, 32, 50, '#ff8a3a', 'center', '#2a0c04', 12);
   ctx.restore();
   // héros
   const hi = IMG.hero, hh = 150, hw = hh * hi.width / hi.height;
   drawShadow(ctx, 98, 912, 40, .45);
   ctx.drawImage(hi, 98 - hw / 2, 912 - hh + Math.sin(t * 2.5) * 2, hw, hh);
-  button(ctx, 'JOUER', 325, 680, 280, 78, 'new', '#ffbf2a', t);
+  [['fr', 14], ['en', 72]].forEach(([code, x]) => {
+    flag(ctx, code, x, 10, 46, 31, I18N.lang === code);
+    R.buttons.push({ x: x - 6, y: 0, w: 58, h: 50, action: 'lang:' + code });
+  });
+  button(ctx, tr('play'), 325, 680, 280, 78, 'new', '#ffbf2a', t);
   // choix du mode
-  { const modes = [['hardcore', 'HARDCORE'], ['lives', 'VIES'], ['continue', 'CONTINUE']], y = 765, bw = 118, gap = 8, x0 = 340 - (bw * 3 + gap * 2) / 2;
+  { const modes = [['hardcore', tr('mode.hardcore')], ['lives', tr('mode.lives')], ['continue', tr('mode.continue')]], y = 765, bw = 118, gap = 8, x0 = 340 - (bw * 3 + gap * 2) / 2;
     modes.forEach(([id, label], i) => {
       const on = game.mode === id, x = x0 + i * (bw + gap);
       rrect(ctx, x, y - 19, bw, 38, 12); ctx.fillStyle = on ? '#ffbf2a' : 'rgba(10,6,20,.75)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = on ? '#2a1206' : 'rgba(255,231,166,.6)'; ctx.stroke();
       txt(ctx, label, x + bw / 2, y + 2, 17, on ? '#2a1206' : '#ffe7a6', 'center', on ? null : '#140a20', 4);
       R.buttons.push({ x, y: y - 22, w: bw, h: 44, action: 'mode:' + id });
     });
-    const d = { hardcore: 'Perdu = retour à la salle 1', lives: '3 vies de 3 coeurs · +1 vie tous les 100 gemmes', continue: 'Perdu = on recommence la salle' }[game.mode];
+    const d = tr('mode.' + game.mode + '.d');
     txt(ctx, d, 340, y + 34, 14, '#e8dcff', 'center', '#140a20', 4); }
-  if (saved) button(ctx, 'CONTINUER · SALLE ' + (saved + 1), 325, 845, 280, 58, 'continue', '#4fb0ff', t + 1, true);
+  if (saved) button(ctx, tr('continueRoom', { n: saved + 1 }), 325, 845, 280, 58, 'continue', '#4fb0ff', t + 1, true);
   const ins = R.installMode && R.installMode();
-  if (ins === 'prompt') button(ctx, "INSTALLER L'APPLI", 340, saved ? 905 : 850, 250, 44, 'install', '#5fd38a', t + 2, true);
-  else if (ins === 'ios') { const y = saved ? 892 : 840; txt(ctx, "Pour l'installer :", 340, y, 16, '#ffe7a6', 'center', '#140a20', 4); txt(ctx, 'Partager puis « Sur l\'écran d\'accueil »', 340, y + 22, 16, '#ffe7a6', 'center', '#140a20', 4); }
+  if (ins === 'prompt') button(ctx, tr('install'), 340, saved ? 905 : 850, 250, 44, 'install', '#5fd38a', t + 2, true);
+  else if (ins === 'ios') { const y = saved ? 892 : 840; txt(ctx, tr('iosInstall1'), 340, y, 16, '#ffe7a6', 'center', '#140a20', 4); txt(ctx, tr('iosInstall2'), 340, y + 22, 16, '#ffe7a6', 'center', '#140a20', 4); }
+}
+function flag(ctx, code, x, y, w, h, on) {
+  ctx.save();
+  rrect(ctx, x - 3, y - 3, w + 6, h + 6, 8); ctx.fillStyle = on ? '#ffbf2a' : 'rgba(10,6,20,.6)'; ctx.fill();
+  rrect(ctx, x, y, w, h, 5); ctx.clip();
+  if (code === 'fr') {
+    ctx.fillStyle = '#1f3c9c'; ctx.fillRect(x, y, w / 3, h); ctx.fillStyle = '#ffffff'; ctx.fillRect(x + w / 3, y, w / 3, h); ctx.fillStyle = '#e1262d'; ctx.fillRect(x + 2 * w / 3, y, w / 3, h);
+  } else {
+    ctx.fillStyle = '#16307a'; ctx.fillRect(x, y, w, h);
+    ctx.lineCap = 'butt';
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = h * .24; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y + h); ctx.moveTo(x + w, y); ctx.lineTo(x, y + h); ctx.stroke();
+    ctx.strokeStyle = '#d4202f'; ctx.lineWidth = h * .09; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y + h); ctx.moveTo(x + w, y); ctx.lineTo(x, y + h); ctx.stroke();
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(x + w / 2 - h * .2, y, h * .4, h); ctx.fillRect(x, y + h * .3, w, h * .4);
+    ctx.fillStyle = '#d4202f'; ctx.fillRect(x + w / 2 - h * .12, y, h * .24, h); ctx.fillRect(x, y + h * .38, w, h * .24);
+  }
+  ctx.restore();
+  if (!on) { ctx.fillStyle = 'rgba(10,6,20,.45)'; rrect(ctx, x, y, w, h, 5); ctx.fill(); }
 }
 function drawDead(ctx, game, t) {
   const k = clamp((game.stateT - .8) / .4, 0, 1); if (k <= 0) return;
   ctx.fillStyle = `rgba(40,0,10,${.65 * k})`; ctx.fillRect(0, 0, W, H);
   ctx.globalAlpha = k;
   if (game.allowContinue) {
-    txt(ctx, 'AÏE !', W / 2, 360, 80, '#ff5a5a', 'center', '#1a0408', 14);
-    txt(ctx, "Le dragon t'a eu…", W / 2, 440, 26, '#ffe0e0');
-    txt(ctx, 'Tes pouvoirs sont gardés.', W / 2, 480, 18, '#ffbcbc');
+    txt(ctx, tr('ouch'), W / 2, 360, 80, '#ff5a5a', 'center', '#1a0408', 14);
+    txt(ctx, tr('gotYou'), W / 2, 440, 26, '#ffe0e0');
+    txt(ctx, tr('keepPowers'), W / 2, 480, 18, '#ffbcbc');
     ctx.globalAlpha = 1;
-    if (k >= 1) { button(ctx, 'CONTINUE', W / 2, 580, 270, 78, 'retry', '#ffbf2a', t); button(ctx, 'MENU', W / 2, 680, 200, 58, 'menu', '#4fb0ff', t + 1, true); }
+    if (k >= 1) { button(ctx, tr('continue'), W / 2, 580, 270, 78, 'retry', '#ffbf2a', t); button(ctx, tr('menu'), W / 2, 680, 200, 58, 'menu', '#4fb0ff', t + 1, true); }
   } else {
-    txt(ctx, 'GAME OVER', W / 2, 340, 70, '#ff5a5a', 'center', '#1a0408', 14);
-    txt(ctx, 'Salle atteinte : ' + (game.levelIdx + 1) + ' / ' + LEVELS.length, W / 2, 425, 26, '#ffe0e0');
-    txt(ctx, 'Gemmes : ' + game.gems, W / 2, 462, 22, '#7ff7ff');
-    txt(ctx, game.mode === 'lives' ? 'Plus de vies : retour à la salle 1.' : 'Tout recommence depuis la salle 1.', W / 2, 500, 17, '#ffbcbc');
+    txt(ctx, tr('gameOver'), W / 2, 340, 70, '#ff5a5a', 'center', '#1a0408', 14);
+    txt(ctx, tr('roomReached', { n: game.levelIdx + 1, m: LEVELS.length }), W / 2, 425, 26, '#ffe0e0');
+    txt(ctx, tr('gems', { n: game.gems }), W / 2, 462, 22, '#7ff7ff');
+    txt(ctx, game.mode === 'lives' ? tr('noLives') : tr('restartAll'), W / 2, 500, 17, '#ffbcbc');
     ctx.globalAlpha = 1;
-    if (k >= 1) { button(ctx, 'REJOUER', W / 2, 590, 270, 78, 'new', '#ffbf2a', t); button(ctx, 'MENU', W / 2, 690, 200, 58, 'menu', '#4fb0ff', t + 1, true); }
+    if (k >= 1) { button(ctx, tr('playAgain'), W / 2, 590, 270, 78, 'new', '#ffbf2a', t); button(ctx, tr('menu'), W / 2, 690, 200, 58, 'menu', '#4fb0ff', t + 1, true); }
   }
 }
 function drawEnd(ctx, game, t, dt) {
@@ -571,16 +593,16 @@ function drawEnd(ctx, game, t, dt) {
   for (let i = 0; i < 12; i++) { ctx.rotate(TAU / 12); ctx.fillStyle = 'rgba(255,210,80,.12)'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-40, -420); ctx.lineTo(40, -420); ctx.closePath(); ctx.fill(); }
   ctx.restore();
   const s = ease.back(clamp(game.stateT / .7, 0, 1));
-  ctx.save(); ctx.translate(W / 2, 280); ctx.scale(s, s); txt(ctx, 'BRAVO !', 0, 0, 84, '#ffd84a', 'center', '#2a0c04', 15); ctx.restore();
-  txt(ctx, 'Le Roi Dragon est vaincu !', W / 2, 370, 27, '#ffffff');
+  ctx.save(); ctx.translate(W / 2, 280); ctx.scale(s, s); txt(ctx, tr('bravo'), 0, 0, 84, '#ffd84a', 'center', '#2a0c04', 15); ctx.restore();
+  txt(ctx, tr('kingDefeated'), W / 2, 370, 27, '#ffffff');
   const tm = Math.floor(game.runTime), mm = Math.floor(tm / 60), ss = String(tm % 60).padStart(2, '0');
-  txt(ctx, 'Gemmes : ' + game.gems, W / 2, 450, 24, '#7ff7ff');
-  txt(ctx, 'Temps : ' + mm + ' min ' + ss, W / 2, 490, 24, '#ffe7a6');
-  if (game.mode === 'continue') txt(ctx, 'Continues : ' + game.deaths, W / 2, 530, 24, '#ffb4b4');
-  else if (game.mode === 'lives') txt(ctx, 'Vies restantes : ' + game.lives + ' (perdues : ' + game.livesLost + ')', W / 2, 530, 22, '#b6ffb0');
-  else txt(ctx, 'En hardcore, sans continue !', W / 2, 530, 24, '#ffd84a');
+  txt(ctx, tr('gems', { n: game.gems }), W / 2, 450, 24, '#7ff7ff');
+  txt(ctx, tr('time', { m: mm, s: ss }), W / 2, 490, 24, '#ffe7a6');
+  if (game.mode === 'continue') txt(ctx, tr('continues', { n: game.deaths }), W / 2, 530, 24, '#ffb4b4');
+  else if (game.mode === 'lives') txt(ctx, tr('livesLeftEnd', { n: game.lives, m: game.livesLost }), W / 2, 530, 22, '#b6ffb0');
+  else txt(ctx, tr('hardcoreWin'), W / 2, 530, 24, '#ffd84a');
   ctx.globalAlpha = 1;
-  if (game.stateT > 1.2) button(ctx, 'REJOUER', W / 2, 660, 260, 78, 'new', '#ffbf2a', t);
+  if (game.stateT > 1.2) button(ctx, tr('playAgain'), W / 2, 660, 260, 78, 'new', '#ffbf2a', t);
 }
 
 // ------------------------------------------------------------------ rendu principal
@@ -654,7 +676,7 @@ R.draw = function (ctx, game, dt, joy) {
   // tuto
   if (game.levelIdx === 0 && game.deaths === 0 && st === 'fight' && game.stateT < 14) {
     if (p.moving) R.tutoMoved = true;
-    const msg = !R.tutoMoved ? 'Glisse ton doigt pour bouger' : 'Arrête-toi pour tirer !';
+    const msg = !R.tutoMoved ? tr('tutoMove') : tr('tutoShoot');
     if (!(R.tutoMoved && game.stateT > 10)) { ctx.globalAlpha = .75 + .25 * Math.sin(t * 5); txt(ctx, msg, W / 2, 640, 26, '#ffffff', 'center', '#1a0a20', 6); ctx.globalAlpha = 1; }
   }
   if (st === 'victory' || st === 'loot') {
@@ -663,7 +685,7 @@ R.draw = function (ctx, game, dt, joy) {
     if (a > 0) {
       ctx.save(); ctx.globalAlpha = a; ctx.translate(W / 2, 450);
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.rotate(t * .5); for (let i = 0; i < 10; i++) { ctx.rotate(TAU / 10); ctx.fillStyle = 'rgba(255,210,80,.13)'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-30, -260); ctx.lineTo(30, -260); ctx.closePath(); ctx.fill(); } ctx.restore();
-      ctx.scale(s, s); txt(ctx, 'VICTOIRE !', 0, 0, 66, '#ffd84a', 'center', '#2a0c04', 13); ctx.restore();
+      ctx.scale(s, s); txt(ctx, tr('victory'), 0, 0, 66, '#ffd84a', 'center', '#2a0c04', 13); ctx.restore();
     }
   }
   if (game.lifeMsg) {
@@ -674,7 +696,7 @@ R.draw = function (ctx, game, dt, joy) {
     ctx.restore();
   }
   if (st === 'upgrade') drawCards(ctx, game, t);
-  if (st === 'walk' && game.stateT > 4 && Math.hypot(p.x - DOOR.x, p.y - A.t) > 150) txt(ctx, 'Monte vers la porte !', W / 2, 250, 22, '#ffe7a6', 'center', '#1a0a20', 5);
+  if (st === 'walk' && game.stateT > 4 && Math.hypot(p.x - DOOR.x, p.y - A.t) > 150) txt(ctx, tr('goDoor'), W / 2, 250, 22, '#ffe7a6', 'center', '#1a0a20', 5);
   if (st === 'dead') drawDead(ctx, game, t);
   if (st === 'end') drawEnd(ctx, game, t, dt);
   // joystick
@@ -687,9 +709,9 @@ R.draw = function (ctx, game, dt, joy) {
   if (game.paused) {
     R.buttons = [];
     ctx.fillStyle = 'rgba(6,4,14,.72)'; ctx.fillRect(0, 0, W, H);
-    txt(ctx, 'PAUSE', W / 2, 360, 70, '#ffffff', 'center', '#1a0a20', 12);
-    button(ctx, 'REPRENDRE', W / 2, 500, 270, 78, 'resume', '#ffbf2a', t);
-    button(ctx, 'MENU', W / 2, 610, 200, 62, 'menu', '#4fb0ff', t + 1, true);
+    txt(ctx, tr('pause'), W / 2, 360, 70, '#ffffff', 'center', '#1a0a20', 12);
+    button(ctx, tr('resume'), W / 2, 500, 270, 78, 'resume', '#ffbf2a', t);
+    button(ctx, tr('menu'), W / 2, 610, 200, 62, 'menu', '#4fb0ff', t + 1, true);
   }
   if (R.soundPanel) drawSound(ctx, t);
 };

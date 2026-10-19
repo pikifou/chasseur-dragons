@@ -24,6 +24,96 @@ const COL = {
   gold:  { core: '#fffbe0', glow: '#ffc21a', ring: '#5e3c00' },
 };
 
+// ------------------------------------------------------------------ langues (FR / EN)
+const I18N = {
+  lang: 'fr',
+  fr: {
+    'lv0': 'Pousse', 'lv0.sub': 'le bébé dragon',
+    'lv1': 'Braise', 'lv1.sub': 'le jeune dragon de feu',
+    'lv2': 'Les Jumeaux', 'lv2.sub': 'deux bébés dragons',
+    'lv3': 'Givre', 'lv3.sub': 'le dragon de glace',
+    'lv4': 'Zap', 'lv4.sub': "le dragon de l'orage",
+    'lv5': 'Blizzard', 'lv5.sub': 'Givre et Zap ensemble',
+    'lv6': 'Pyros', 'lv6.sub': 'le grand dragon de feu',
+    'lv7': 'Tempête', 'lv7.sub': 'le dragon furieux',
+    'lv8': 'Les Gardiens', 'lv8.sub': 'feu et glace',
+    'lv9': 'Le Roi Dragon', 'lv9.sub': 'maître de la tour',
+    'boss.vert1': 'Pousse I', 'boss.vert2': 'Pousse II', 'boss.glace': 'Givre', 'boss.orage': 'Zap', 'boss.rouge': 'Braise',
+    'up.multi': 'Flèche double', 'up.multi.d': '+1 flèche devant',
+    'up.diag': 'Éventail', 'up.diag.d': '+2 flèches en biais',
+    'up.rate': 'Tir rapide', 'up.rate.d': 'Tire 20 % plus vite',
+    'up.dmg': "Pointes d'acier", 'up.dmg.d': 'Dégâts +25 %',
+    'up.crit': 'Oeil de lynx', 'up.crit.d': 'Coups critiques x2',
+    'up.burn': 'Flèches de feu', 'up.burn.d': 'Le dragon brûle',
+    'up.heart': 'Grand coeur', 'up.heart.d': '+1 coeur et soin',
+    'up.shield': 'Bouclier', 'up.shield.d': 'Bloque un coup',
+    'up.speed': 'Bottes de vent', 'up.speed.d': 'Court 15 % plus vite',
+    'blocked': 'Bloqué !', 'angry': 'Il se fâche !', 'bonusHeart': 'Coeur bonus !',
+    'lifeLost': 'VIE PERDUE !', 'lastLife': 'Dernière vie !', 'livesLeft1': 'Encore 1 vie', 'livesLeftN': 'Encore {n} vies',
+    'lifeUp': '+1 VIE !', 'flawless': 'Salle sans une égratignure', 'gemsN': '{n} gemmes',
+    'title1': 'CHASSEUR', 'title2': 'DE DRAGONS', 'play': 'JOUER',
+    'mode.hardcore': 'HARDCORE', 'mode.lives': 'VIES', 'mode.continue': 'CONTINUE',
+    'mode.hardcore.d': 'Perdu = retour à la salle 1', 'mode.lives.d': '3 vies de 3 coeurs · +1 vie tous les 100 gemmes', 'mode.continue.d': 'Perdu = on recommence la salle',
+    'continueRoom': 'CONTINUER · SALLE {n}', 'install': "INSTALLER L'APPLI", 'iosInstall1': "Pour l'installer :", 'iosInstall2': "Partager puis « Sur l'écran d'accueil »",
+    'room': 'SALLE {n} / {m}', 'roomN': 'SALLE {n}', 'finalBattle': 'COMBAT FINAL',
+    'sound': 'SON', 'music': 'Musique', 'sfx': 'Bruitages', 'ok': 'OK',
+    'choosePower': 'CHOISIS UN POUVOIR !',
+    'ouch': 'AÏE !', 'gotYou': "Le dragon t'a eu…", 'keepPowers': 'Tes pouvoirs sont gardés.', 'continue': 'CONTINUE', 'menu': 'MENU',
+    'gameOver': 'GAME OVER', 'roomReached': 'Salle atteinte : {n} / {m}', 'gems': 'Gemmes : {n}',
+    'noLives': 'Plus de vies : retour à la salle 1.', 'restartAll': 'Tout recommence depuis la salle 1.', 'playAgain': 'REJOUER',
+    'bravo': 'BRAVO !', 'kingDefeated': 'Le Roi Dragon est vaincu !', 'time': 'Temps : {m} min {s}',
+    'continues': 'Continues : {n}', 'livesLeftEnd': 'Vies restantes : {n} (perdues : {m})', 'hardcoreWin': 'En hardcore, sans continue !',
+    'tutoMove': 'Glisse ton doigt pour bouger', 'tutoShoot': 'Arrête-toi pour tirer !',
+    'victory': 'VICTOIRE !', 'goDoor': 'Monte vers la porte !', 'pause': 'PAUSE', 'resume': 'REPRENDRE', 'loading': 'Chargement…',
+  },
+  en: {
+    'lv0': 'Sprout', 'lv0.sub': 'the baby dragon',
+    'lv1': 'Ember', 'lv1.sub': 'the young fire dragon',
+    'lv2': 'The Twins', 'lv2.sub': 'two baby dragons',
+    'lv3': 'Frost', 'lv3.sub': 'the ice dragon',
+    'lv4': 'Zap', 'lv4.sub': 'the storm dragon',
+    'lv5': 'Blizzard', 'lv5.sub': 'Frost and Zap together',
+    'lv6': 'Pyros', 'lv6.sub': 'the great fire dragon',
+    'lv7': 'Tempest', 'lv7.sub': 'the furious dragon',
+    'lv8': 'The Guardians', 'lv8.sub': 'fire and ice',
+    'lv9': 'The Dragon King', 'lv9.sub': 'master of the tower',
+    'boss.vert1': 'Sprout I', 'boss.vert2': 'Sprout II', 'boss.glace': 'Frost', 'boss.orage': 'Zap', 'boss.rouge': 'Ember',
+    'up.multi': 'Double Arrow', 'up.multi.d': '+1 arrow forward',
+    'up.diag': 'Fan Shot', 'up.diag.d': '+2 side arrows',
+    'up.rate': 'Rapid Fire', 'up.rate.d': 'Shoots 20% faster',
+    'up.dmg': 'Steel Tips', 'up.dmg.d': 'Damage +25%',
+    'up.crit': 'Lynx Eye', 'up.crit.d': 'Critical hits x2',
+    'up.burn': 'Fire Arrows', 'up.burn.d': 'The dragon burns',
+    'up.heart': 'Big Heart', 'up.heart.d': '+1 heart and heal',
+    'up.shield': 'Shield', 'up.shield.d': 'Blocks one hit',
+    'up.speed': 'Wind Boots', 'up.speed.d': 'Runs 15% faster',
+    'blocked': 'Blocked!', 'angry': "He's angry!", 'bonusHeart': 'Bonus heart!',
+    'lifeLost': 'LIFE LOST!', 'lastLife': 'Last life!', 'livesLeft1': '1 life left', 'livesLeftN': '{n} lives left',
+    'lifeUp': '+1 LIFE!', 'flawless': 'Flawless room', 'gemsN': '{n} gems',
+    'title1': 'DRAGON', 'title2': 'HUNTER', 'play': 'PLAY',
+    'mode.hardcore': 'HARDCORE', 'mode.lives': 'LIVES', 'mode.continue': 'CONTINUE',
+    'mode.hardcore.d': 'Lose = back to room 1', 'mode.lives.d': '3 lives of 3 hearts · +1 life every 100 gems', 'mode.continue.d': 'Lose = restart the room',
+    'continueRoom': 'CONTINUE · ROOM {n}', 'install': 'INSTALL THE APP', 'iosInstall1': 'To install it:', 'iosInstall2': 'Share, then "Add to Home Screen"',
+    'room': 'ROOM {n} / {m}', 'roomN': 'ROOM {n}', 'finalBattle': 'FINAL BATTLE',
+    'sound': 'SOUND', 'music': 'Music', 'sfx': 'Sound effects', 'ok': 'OK',
+    'choosePower': 'CHOOSE A POWER!',
+    'ouch': 'OUCH!', 'gotYou': 'The dragon got you…', 'keepPowers': 'You keep your powers.', 'continue': 'CONTINUE', 'menu': 'MENU',
+    'gameOver': 'GAME OVER', 'roomReached': 'Room reached: {n} / {m}', 'gems': 'Gems: {n}',
+    'noLives': 'No lives left: back to room 1.', 'restartAll': 'Everything starts again from room 1.', 'playAgain': 'PLAY AGAIN',
+    'bravo': 'WELL DONE!', 'kingDefeated': 'The Dragon King is defeated!', 'time': 'Time: {m} min {s}',
+    'continues': 'Continues: {n}', 'livesLeftEnd': 'Lives left: {n} (lost: {m})', 'hardcoreWin': 'Hardcore, no continues!',
+    'tutoMove': 'Slide your finger to move', 'tutoShoot': 'Stop to shoot!',
+    'victory': 'VICTORY!', 'goDoor': 'Head up to the door!', 'pause': 'PAUSE', 'resume': 'RESUME', 'loading': 'Loading…',
+  },
+};
+function tr(k, v) {
+  let s = (I18N[I18N.lang] || I18N.fr)[k];
+  if (s == null) s = I18N.fr[k];
+  if (s == null) return k;
+  if (v) for (const x in v) s = s.split('{' + x + '}').join(v[x]);
+  return s;
+}
+
 // Types de dragons (sprites). ar = hauteur/largeur, body = demi-axes du corps (fraction de w,h), mouth = position de la gueule (fraction de h depuis le centre)
 const DT = {
   vert:  { img: 'dragon_vert',  ar: 292 / 384, body: [.34, .40], hit: [.40, .44], mouth: -.06, col: 'green' },
@@ -340,7 +430,7 @@ class Game {
     if (p.shield > 0) {
       p.shield--; p.shieldCd = 8; p.inv = .9; this.sfx('shield');
       this.ring(p.x, p.y - 20, 60, '#7fe8ff', 8); this.burst(p.x, p.y - 20, 20, ['#bff4ff', '#7fe8ff', '#ffffff'], 260);
-      this.text(p.x, p.y - 70, 'Bloqué !', '#9ef0ff', 24);
+      this.text(p.x, p.y - 70, tr('blocked'), '#9ef0ff', 24);
       return true;
     }
     if (p.bonus > 0) {
@@ -360,7 +450,7 @@ class Game {
     const p = this.player;
     this.lives--; this.livesLost++;
     p.hp = p.maxHp; p.bonus = 0; p.shield = p.shieldMax; p.inv = 3; p.flash = 0;
-    this.lifeMsg = { t: 0, txt: 'VIE PERDUE !', sub: this.lives === 0 ? 'Dernière vie !' : 'Encore ' + this.lives + (this.lives > 1 ? ' vies' : ' vie'), col: '#ff6a6a' };
+    this.lifeMsg = { t: 0, txt: tr('lifeLost'), sub: this.lives === 0 ? tr('lastLife') : this.lives === 1 ? tr('livesLeft1') : tr('livesLeftN', { n: this.lives }), col: '#ff6a6a' };
     this.slowT = 1; this.shake(18); this.sfx('lose');
     this.explosion(p.x, p.y - 20, .8, 'ice');
     for (const b of this.bullets) this.burst(b.x, b.y, 3, ['#bfefff', '#ffffff'], 80, 3);
@@ -372,7 +462,7 @@ class Game {
     if (this.mode !== 'lives') return;
     this.lives = Math.min(9, this.lives + 1);
     const p = this.player;
-    this.lifeMsg = { t: 0, txt: '+1 VIE !', sub: why, col: '#7dff8a' };
+    this.lifeMsg = { t: 0, txt: tr('lifeUp'), sub: why, col: '#7dff8a' };
     this.sfx('up'); this.ring(p.x, p.y - 30, 90, '#7dff8a', 8); this.burst(p.x, p.y - 30, 24, ['#b6ffb0', '#ffffff', '#7dff8a'], 260);
   }
   damage(e, dmg, crit, burn) {
@@ -389,7 +479,7 @@ class Game {
   phaseUp(e) {
     e.phase++; e.roar = 1; e.tremble = .9; this.shake(16); this.sfx('roar');
     this.ring(e.x, e.y, e.w * .8, COL[e.col].glow, 14);
-    this.text(e.x, e.y - e.h * .5, 'Il se fâche !', '#ff6a5a', 26);
+    this.text(e.x, e.y - e.h * .5, tr('angry'), '#ff6a5a', 26);
     const p = this.player;
     this.pickups.push({ kind: 'heart', x: clamp(e.x, A.l + 40, A.r - 40), y: e.y + e.h * .4, vy: 0, t: 0, land: clamp(p.y - 150, A.t + 260, A.b - 120) });
   }
@@ -402,7 +492,7 @@ class Game {
     if (this.enemies.every(x => !x.boss || x.dying || x.dead)) {
       // victoire : on nettoie l'écran
       this.state = 'victory'; this.stateT = 0; this.slowT = .9;
-      if (this.mode === 'lives' && this.player.hits === this.roomHits) this.extraLife('Salle sans une égratignure');
+      if (this.mode === 'lives' && this.player.hits === this.roomHits) this.extraLife(tr('flawless'));
       for (const b of this.bullets) this.burst(b.x, b.y, 3, ['#fff7c0', '#ffe066'], 80, 3);
       this.bullets = []; this.hazards = this.hazards.filter(h => h.kind === 'scorch');
       for (const m of this.enemies) if (m.minion && !m.dead) this.kill(m);
@@ -712,7 +802,7 @@ class Game {
       if (Math.hypot(p.x - k.x, p.y - 20 - k.y) < 34) {
         k.taken = true; this.sfx('heal');
         if (p.hp < p.maxHp) { p.hp++; this.burst(k.x, k.y, 16, ['#ff6b8a', '#ffd0dc', '#ffffff'], 200); this.text(p.x, p.y - 70, '+1 ❤', '#ff8fa8', 24); }
-        else { p.bonus = Math.min(3, p.bonus + 1); this.burst(k.x, k.y, 20, ['#ffd84a', '#fff3b0', '#ffffff'], 240); this.ring(p.x, p.y - 30, 60, '#ffd84a', 6); this.text(p.x, p.y - 70, 'Coeur bonus !', '#ffd84a', 24); }
+        else { p.bonus = Math.min(3, p.bonus + 1); this.burst(k.x, k.y, 20, ['#ffd84a', '#fff3b0', '#ffffff'], 240); this.ring(p.x, p.y - 30, 60, '#ffd84a', 6); this.text(p.x, p.y - 70, tr('bonusHeart'), '#ffd84a', 24); }
       }
     }
     this.pickups = this.pickups.filter(k => !k.taken);
@@ -724,7 +814,7 @@ class Game {
       else {
         const dx = p.x - g.x, dy = p.y - 25 - g.y, d = Math.hypot(dx, dy);
         const sp = 300 + (g.t - .55) * 1400;
-        if (d < 22) { this.gems++; if (this.gems % 100 === 0) this.extraLife(this.gems + ' gemmes'); this.sfx('gem'); this.burst(p.x, p.y - 25, 3, ['#9ff', '#fff'], 90, 3); continue; }
+        if (d < 22) { this.gems++; if (this.gems % 100 === 0) this.extraLife(tr('gemsN', { n: this.gems })); this.sfx('gem'); this.burst(p.x, p.y - 25, 3, ['#9ff', '#fff'], 90, 3); continue; }
         g.x += dx / d * Math.min(d, sp * dt); g.y += dy / d * Math.min(d, sp * dt); g.z *= .9;
       }
       out.push(g);
@@ -748,6 +838,6 @@ class Game {
   }
 }
 
-const API = { Game, LEVELS, WORLDS, UPS, DT, COL, A, DOOR, W, H, clamp, lerp, ease, TAU };
+const API = { I18N, tr, Game, LEVELS, WORLDS, UPS, DT, COL, A, DOOR, W, H, clamp, lerp, ease, TAU };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.DG = API;
 })(typeof window !== 'undefined' ? window : globalThis);

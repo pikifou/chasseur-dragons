@@ -1,7 +1,10 @@
 // ===== Chasseur de Dragons : son, contrôles, boucle =====
 (function () {
 'use strict';
-const { W, H, Game } = DG;
+const { W, H, Game, I18N, tr } = DG;
+try { const l = localStorage.getItem('dragon-lang'); I18N.lang = l === 'fr' || l === 'en' ? l : /^fr/i.test(navigator.language || 'fr') ? 'fr' : 'en'; } catch (e) { I18N.lang = /^fr/i.test(navigator.language || 'fr') ? 'fr' : 'en'; }
+function applyLang() { document.documentElement.lang = I18N.lang; const l = document.getElementById('load'); if (l) l.textContent = tr('loading'); }
+applyLang();
 
 // ------------------------------------------------------------------ son (synthétisé)
 const Snd = {
@@ -169,6 +172,7 @@ function act(a) {
   if (a === 'new') { DR.tutoMoved = false; if (game.state === 'title') enterGame(); game.startNew(); return; }
   if (a === 'continue') { enterGame(); game.continueGame(); return; }
   if (a === 'retry') { game.retry(); return; }
+  if (a.startsWith('lang:')) { I18N.lang = a.slice(5); try { localStorage.setItem('dragon-lang', I18N.lang); } catch (e) {} applyLang(); Snd.play('cards'); return; }
   if (a.startsWith('mode:')) { game.mode = a.slice(5); try { localStorage.setItem('dragon-mode', game.mode); } catch (e) {} Snd.play('cards'); return; }
   if (a.startsWith('card')) { game.chooseUpgrade(+a.slice(4)); return; }
 }
